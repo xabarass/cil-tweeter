@@ -13,13 +13,11 @@ from keras.layers.wrappers import Bidirectional
 from keras.models import Model
 import os
 
-from scipy.ndimage import fourier
-
-
 class Network:
     def __init__(self, input_dimension):
         self.dimensions=input_dimension
 
+    @DeprecationWarning
     def _load_pretrained_glove(self, glove_file_dir, data_set):
         glove_file = "glove.twitter.27B.%dd.txt" % self.dimensions
         glove_path=os.path.join(glove_file_dir,glove_file)
@@ -74,6 +72,8 @@ class Network:
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
+
+        print(model.summary())
 
         model.fit(x_train, y_train, epochs=2, batch_size=64)
 
