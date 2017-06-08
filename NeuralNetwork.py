@@ -49,6 +49,8 @@ class Network:
         #                     input_length=data_set.max_tweet_length,
         #                     trainable=False)
 
+        print("Max tweet length: %d"%data_set.max_tweet_length)
+
         (x_train, y_train), (x_val, y_val)=data_set.shuffle_and_split(split_ratio)
 
         x_train = sequence.pad_sequences(x_train, maxlen=data_set.max_tweet_length)
@@ -59,12 +61,17 @@ class Network:
         model = Sequential()
         model.add(embedding_layer)
         model.add(Convolution1D(64,
-                                3,
+                                5,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
+        model.add(Convolution1D(128,
+                                5,
+                                padding='valid',
+                                activation='relu',
+                                strides=1))
         model.add(Dropout(0.25))
-        model.add(Bidirectional(LSTM(80)))
+        model.add(LSTM(80))
         model.add(Dropout(0.3))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
