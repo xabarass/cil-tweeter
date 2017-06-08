@@ -63,14 +63,15 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(64,
+        model.add(Convolution1D(128,
                                 5,
                                 padding='valid',
                                 activation='relu',
                                 strides=1))
-        # model.add(MaxPooling1D(pool_size=pool_size))
-        model.add(Dropout(0.25))
-        model.add(LSTM(70))
+        model.add(MaxPooling1D(pool_size=2))
+        model.add(Dropout(0.35))
+        model.add(LSTM(90))
+        model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
 
