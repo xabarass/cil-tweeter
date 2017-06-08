@@ -4,6 +4,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM, Convolution1D, Flatten, Dropout, Activation, Input
 from keras.layers.embeddings import Embedding
+from keras.layers.pooling import MaxPooling1D
 from keras.preprocessing import sequence
 from keras.layers.merge import Concatenate
 from keras.models import model_from_json
@@ -59,20 +60,15 @@ class Network:
         embedding_layer=Embedding(data_set.word_count, self.dimensions, input_length=data_set.max_tweet_length)
 
         model = Sequential()
-        model.add(embedding_layer)
+        model.add(Embedding(embedding_layer))
         model.add(Convolution1D(64,
-                                5,
-                                padding='causal',
-                                activation='relu',
-                                strides=1))
-        model.add(Convolution1D(128,
                                 5,
                                 padding='valid',
                                 activation='relu',
                                 strides=1))
+        # model.add(MaxPooling1D(pool_size=pool_size))
         model.add(Dropout(0.25))
-        model.add(LSTM(80))
-        model.add(Dropout(0.3))
+        model.add(LSTM(70))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
 
