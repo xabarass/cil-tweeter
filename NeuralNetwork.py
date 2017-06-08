@@ -57,10 +57,12 @@ class Network:
         x_train = sequence.pad_sequences(x_train, maxlen=data_set.max_tweet_length)
         x_val = sequence.pad_sequences(x_val, maxlen=data_set.max_tweet_length)
 
+        print("Word count %d dimensions %d" %(data_set.word_count, self.dimensions))
+
         embedding_layer=Embedding(data_set.word_count, self.dimensions, input_length=data_set.max_tweet_length)
 
         model = Sequential()
-        model.add(Embedding(embedding_layer))
+        model.add(embedding_layer)
         model.add(Convolution1D(64,
                                 5,
                                 padding='valid',
