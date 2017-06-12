@@ -13,10 +13,11 @@ dataSet=TwitterDataSet(True,
                        vocab_path='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/vocab.txt',
                        remove_unknown_words=True)
 
-word_embedding_dim=200
-validation_split_ratio=0.99
+word_embedding_dim=300
+validation_split_ratio=0.8
 result_file='result.csv'
 
 trainModel=Network(word_embedding_dim)
 trainModel.train(dataSet, validation_split_ratio, generate_word_embeddings=True, embedding_corpus_name='small.emb')
-# trainModel.predict(dataSet, result_file)
+# trainModel.load_model('model.json','model.h5')
+trainModel.predict(dataSet, result_file)

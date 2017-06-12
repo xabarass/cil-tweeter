@@ -59,7 +59,8 @@ class Network:
                                             window=5,
                                             min_count=data_set.min_word_occurence,
                                             workers=8,
-                                            sg=1)
+                                            sg=1,
+                                            iter=8)
             print("Word embeddings generated!")
 
         if embedding_corpus_name:
@@ -99,19 +100,12 @@ class Network:
         model = Sequential()
         model.add(embedding_layer)
         model.add(Convolution1D(200,
-                                6,
-                                padding='causal',
-                                activation='relu',
-                                strides=1))
-        model.add(MaxPooling1D(pool_size=6, strides=2))
-        model.add(Convolution1D(200,
                                 4,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
-        model.add(MaxPooling1D(pool_size=6, strides=2))
         model.add(Dropout(0.35))
-        model.add(LSTM(100, activation='relu'))
+        model.add(LSTM(100))
         model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
@@ -143,6 +137,9 @@ class Network:
             self.model = model_from_json(loaded_model_json)
 
         self.model.load_weights(params)
+
+        self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
         print("Loaded model from disk!")
 
     def predict(self, data_set, prediction_file):
