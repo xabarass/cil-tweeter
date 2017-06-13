@@ -99,13 +99,13 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(300,
+        model.add(Convolution1D(350,
                                 4,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
         model.add(Dropout(0.35))
-        model.add(LSTM(150))
+        model.add(LSTM(175))
         model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
