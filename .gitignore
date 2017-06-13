@@ -2,3 +2,5 @@ __pycache__
 logs
 .idea
 model.*
+results/*
+twitter-datasets/

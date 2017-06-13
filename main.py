@@ -1,23 +1,22 @@
 import logging
-from data_set import TwitterDataSet
+
 from NeuralNetwork import Network
+import config
+from data_set import TwitterDataSet
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 print("Starting...")
 
 dataSet=TwitterDataSet(True,
-                       positive_tweets='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/train_pos.txt',
-                       negative_tweets='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/train_neg.txt',
-                       test_data='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/test_data.txt',
-                       vocab_path='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/vocab.txt',
-                       remove_unknown_words=True)
+                       positive_tweets=config.positive_tweets,
+                       negative_tweets=config.negative_tweets,
+                       test_data=config.test_data,
+                       vocab_path=config.vocab_path,
+                       remove_unknown_words=config.remove_unknown_words)
 
-word_embedding_dim=300
-validation_split_ratio=0.8
-result_file='result.csv'
-
-trainModel=Network(word_embedding_dim)
-trainModel.train(dataSet, validation_split_ratio, generate_word_embeddings=True, embedding_corpus_name='small.emb')
-# trainModel.load_model('model.json','model.h5')
-trainModel.predict(dataSet, result_file)
+trainModel=Network(config.word_embedding_dim)
+trainModel.train(dataSet, config.validation_split_ratio,
+                 config.generate_word_embeddings, config.embedding_corpus_name)
+# trainModel.load_model(config.model_json,config.model_h5)
+trainModel.predict(dataSet, config.result_file)
