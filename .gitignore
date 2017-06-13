@@ -3,7 +3,13 @@ logs
 .idea
 model.*
 results/*
-twitter-datasets/
+twitter-datasets/test*
+twitter-datasets/train*
+twitter-datasets/vocab*
+twitter-datasets/sample_submission.csv
+twitter-datasets/twitter-datasets.zip
+twitter-datasets/cleared_test_data.txt
+
 
 # -- gitignore template from https://github.com/github/gitignore/blob/master/Python.gitignore --
 
