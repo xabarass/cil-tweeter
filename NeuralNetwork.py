@@ -60,7 +60,7 @@ class Network:
                                             min_count=data_set.min_word_occurence,
                                             workers=8,
                                             sg=1,
-                                            iter=8)
+                                            iter=10)
             print("Word embeddings generated!")
 
         if embedding_corpus_name:
@@ -99,13 +99,13 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(200,
+        model.add(Convolution1D(300,
                                 4,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
         model.add(Dropout(0.35))
-        model.add(LSTM(100))
+        model.add(LSTM(150))
         model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
