@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 def remove_index(line):
     comma_pos = line.find(',')
     tweet_id = int(line[:comma_pos])
