@@ -1,3 +1,5 @@
+import datetime
+import time
 import logging
 
 from NeuralNetwork import Network
@@ -19,4 +21,7 @@ trainModel=Network(config.word_embedding_dim)
 trainModel.train(dataSet, config.validation_split_ratio,
                  config.generate_word_embeddings, config.embedding_corpus_name)
 # trainModel.load_model(config.model_json,config.model_h5)
-trainModel.predict(dataSet, config.result_file)
+timestamp = str(int(time.time()))
+result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )
+print("\tWriting to: {}".format(result_file))
+trainModel.predict(dataSet, result_file)
