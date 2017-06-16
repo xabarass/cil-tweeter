@@ -82,7 +82,7 @@ class Network:
                                 self.dimensions,
                                 weights=[embedding_matrix],
                                 input_length=data_set.max_tweet_length,
-                                trainable=False)
+                                trainable=True)
         else:
             embedding_layer = Embedding(data_set.word_count,
                                         self.dimensions,
@@ -99,14 +99,14 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(350,
+        model.add(Convolution1D(300,
                                 4,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
-        model.add(Dropout(0.35))
-        model.add(LSTM(175))
-        model.add(Dropout(0.30))
+        model.add(Dropout(0.5))
+        model.add(LSTM(150))
+        model.add(Dropout(0.5))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
 
@@ -116,7 +116,7 @@ class Network:
 
         print(model.summary())
 
-        model.fit(x_train, y_train, epochs=3, batch_size=64)
+        model.fit(x_train, y_train, epochs=2, batch_size=64)
 
         scores = model.evaluate(x_val, y_val, verbose=0)
         print("Accuracy: %.2f%%" % (scores[1] * 100))
