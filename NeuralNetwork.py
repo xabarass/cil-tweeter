@@ -14,6 +14,7 @@ from keras.layers.wrappers import Bidirectional
 from gensim.models import Word2Vec
 from pathlib import Path
 import os
+import config
 
 class Network:
     def __init__(self, input_dimension):
@@ -74,7 +75,9 @@ class Network:
 
         return embedding_matrix
 
-    def train(self, data_set, split_ratio, generate_word_embeddings=False, embedding_corpus_name=None):
+    def train(self, data_set, split_ratio, 
+              generate_word_embeddings=False, embedding_corpus_name=None,
+              model_json_file=config.model_json, model_h5_file=config.model_h5):
         embedding_layer=None
         if generate_word_embeddings:
             embedding_matrix=self._generate_word_embeddings(data_set, embedding_corpus_name)
@@ -122,10 +125,25 @@ class Network:
         print("Accuracy: %.2f%%" % (scores[1] * 100))
 
         print("Saving model...")
+
+        if not os.path.exists(os.path.dirname(model_json_file)):
+            try:
+                os.makedirs(os.path.dirname(model_json_file))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+       
+        if not os.path.exists(os.path.dirname(model_h5_file)):
+            try:
+                os.makedirs(os.path.dirname(model_h5_file))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+
         model_json = model.to_json()
-        with open("model.json", "w") as json_file:
+        with open(model_json_file, "w") as json_file:
             json_file.write(model_json)
-        model.save_weights("model.h5")
+        model.save_weights(model_h5_file)
         print("Saved model to disk")
 
         self.model=model
