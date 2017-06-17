@@ -4,6 +4,7 @@
 
 echo "Running main and committing & pushing results..."
 python3 main.py
+git pull origin $(git symbolic-ref --short -q HEAD)
 git add results/*
 if [[ $# -ne 1 ]]; then 
     git commit -m "Automated commit of run results"
