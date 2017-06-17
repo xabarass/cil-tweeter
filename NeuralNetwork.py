@@ -60,7 +60,7 @@ class Network:
                                 self.dimensions,
                                 weights=[embedding_matrix],
                                 input_length=data_set.max_tweet_length,
-                                trainable=True)
+                                trainable=False)
         else:
             embedding_layer = Embedding(data_set.word_count,
                                         self.dimensions,
