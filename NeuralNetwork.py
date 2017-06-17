@@ -99,7 +99,7 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(self.dimensions,
+        model.add(Convolution1D(300,
                                 4,
                                 padding='causal',
                                 activation='relu',
