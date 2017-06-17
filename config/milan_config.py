@@ -8,7 +8,7 @@ vocab_path='/home/milan/fax/computational_intelligence_lab/project/twitter-datas
 remove_unknown_words=True
 
 # Further model parameters of main.py
-word_embedding_dim=300
+word_embedding_dim=400
 validation_split_ratio=0.8
 result_file='result.csv'
 

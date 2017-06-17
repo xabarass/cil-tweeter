@@ -19,31 +19,6 @@ class Network:
     def __init__(self, input_dimension):
         self.dimensions=input_dimension
 
-    @DeprecationWarning
-    def _load_pretrained_glove(self, glove_file_dir, data_set):
-        glove_file = "glove.twitter.27B.%dd.txt" % self.dimensions
-        glove_path=os.path.join(glove_file_dir,glove_file)
-        embeddings = {}
-        self.model=None
-
-        with open(glove_path,'r') as emb:
-            for line in emb:
-                tokens=line.split(' ')
-                word=tokens[0]
-                vector=np.asarray(tokens[1:], dtype='float32')
-                embeddings[word]=vector
-
-        found_replacements=0
-        embedding_matrix = np.zeros((data_set.word_count, self.dimensions))
-        for word in data_set.unused_words:
-            embedding_vector = embeddings.get(word)
-            if embedding_vector is not None:
-                embedding_matrix[0] = embedding_vector
-                found_replacements=found_replacements+1
-
-        print("Found replacements in other dictionary %d" %found_replacements)
-        return embedding_matrix
-
     def _generate_word_embeddings(self, data_set, embedding_corpus_name):
         print("Generating word embeddings")
         word_embedding_model=None
@@ -56,7 +31,7 @@ class Network:
         if not word_embedding_model:
             word_embedding_model = Word2Vec(data_set.full_tweets,
                                             size=self.dimensions,
-                                            window=5,
+                                            window=7,
                                             min_count=data_set.min_word_occurence,
                                             workers=8,
                                             sg=1,
@@ -99,24 +74,22 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(self.dimensions,
+        model.add(Convolution1D(350,
                                 4,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
-        model.add(Dropout(0.5))
+        model.add(Dropout(0.35))
         model.add(LSTM(150))
-        model.add(Dropout(0.5))
+        model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
-
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
 
         print(model.summary())
-
-        model.fit(x_train, y_train, epochs=2, batch_size=64)
+        model.fit(x_train, y_train, epochs=3, batch_size=64)
 
         scores = model.evaluate(x_val, y_val, verbose=0)
         print("Accuracy: %.2f%%" % (scores[1] * 100))
