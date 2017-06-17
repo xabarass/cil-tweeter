@@ -79,14 +79,22 @@ class Network:
         model.add(embedding_layer)
         model.add(Convolution1D(350,
                                 4,
+                                padding='valid',
+                                activation='relu',
+                                strides=1))
+        model.add(Dropout(0.3))
+        
+        model.add(Convolution1D(350,
+                                7,
                                 padding='causal',
                                 activation='relu',
                                 strides=1))
-        model.add(Dropout(0.35))
+        model.add(Dropout(0.4))
         model.add(LSTM(150))
         model.add(Dropout(0.30))
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
+
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
@@ -98,20 +106,6 @@ class Network:
         print("Accuracy: %.2f%%" % (scores[1] * 100))
 
         print("Saving model...")
-
-        if not os.path.exists(os.path.dirname(model_json_file)):
-            try:
-                os.makedirs(os.path.dirname(model_json_file))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-       
-        if not os.path.exists(os.path.dirname(model_h5_file)):
-            try:
-                os.makedirs(os.path.dirname(model_h5_file))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
 
         model_json = model.to_json()
         with open(model_json_file, "w") as json_file:
@@ -146,7 +140,6 @@ class Network:
             try:
                 os.makedirs(os.path.dirname(prediction_file))
             except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
                     raise
 
         with open(prediction_file, "w") as submission:
