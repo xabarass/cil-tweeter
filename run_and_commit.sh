@@ -3,7 +3,7 @@
 # Script to run main.py and automatically commit results when done with a supplied commit message
 
 echo "Running main and committing & pushing results..."
-#python3 main.py
+python3 main.py
 git add results/*
 if [[ $# -ne 1 ]]; then 
     git commit -m "Automated commit of run results"
