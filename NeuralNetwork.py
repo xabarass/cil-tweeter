@@ -150,6 +150,14 @@ class Network:
         predictions = self.model.predict(x_test, batch_size=64)
 
         print("Done with predictions, generating submission file...")
+
+        if not os.path.exists(os.path.dirname(prediction_file)):
+            try:
+                os.makedirs(os.path.dirname(prediction_file))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+
         with open(prediction_file, "w") as submission:
             submission.write("Id,Prediction\n")
             i = 1
