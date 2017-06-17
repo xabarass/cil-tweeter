@@ -10,11 +10,31 @@ from keras.layers.merge import Concatenate
 from keras.models import model_from_json
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers.wrappers import Bidirectional
+from keras.callbacks import Callback
 from gensim.models import Word2Vec
 from pathlib import Path
 import os
 import config
+
+class ModelEvaluater(Callback):
+    def __init__(self, model, x_val, y_val):
+        super(Callback, self).__init__()
+        self.model=model
+        self.x_val=x_val
+        self.y_val=y_val
+
+    def on_epoch_end(self, epoch, logs=None):
+        print()
+        print("Evaluating epoch...")
+        scores = self.model.evaluate(self.x_val, self.y_val, verbose=0)
+        print("Accuracy: %.2f%%" % (scores[1] * 100))
+
+        print("Saving model...")
+        model_json = self.model.to_json()
+        with open("model-e{}.json".format(epoch), "w") as json_file:
+            json_file.write(model_json)
+        self.model.save_weights("model-e{}.h5".format(epoch))
+        print("Saved model to disk")
 
 class Network:
     def __init__(self, input_dimension):
@@ -78,35 +98,29 @@ class Network:
         model = Sequential()
         model.add(embedding_layer)
         model.add(Convolution1D(350,
-                                4,
+                                3,
                                 padding='valid',
                                 activation='relu',
                                 strides=1))
-        model.add(Dropout(0.3))
-        
         model.add(Convolution1D(350,
                                 7,
-                                padding='causal',
+                                padding='valid',
                                 activation='relu',
                                 strides=1))
-        model.add(Dropout(0.4))
         model.add(LSTM(150))
-        model.add(Dropout(0.30))
-        model.add(Dense(1))
-        model.add(Activation('sigmoid'))
+        model.add(Dropout(0.5))
+        model.add(Dense(1, activation='sigmoid'))
 
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',
                       metrics=['accuracy'])
 
         print(model.summary())
-        model.fit(x_train, y_train, epochs=3, batch_size=64)
 
-        scores = model.evaluate(x_val, y_val, verbose=0)
-        print("Accuracy: %.2f%%" % (scores[1] * 100))
+        evaluater=ModelEvaluater(model, x_val, y_val)
+        model.fit(x_train, y_train, epochs=4, batch_size=64, callbacks=[evaluater])
 
         print("Saving model...")
-
         model_json = model.to_json()
         with open(model_json_file, "w") as json_file:
             json_file.write(model_json)
@@ -135,12 +149,6 @@ class Network:
         predictions = self.model.predict(x_test, batch_size=64)
 
         print("Done with predictions, generating submission file...")
-
-        if not os.path.exists(os.path.dirname(prediction_file)):
-            try:
-                os.makedirs(os.path.dirname(prediction_file))
-            except OSError as exc: # Guard against race condition
-                    raise
 
         with open(prediction_file, "w") as submission:
             submission.write("Id,Prediction\n")
