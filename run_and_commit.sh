@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Script to run main.py and automatically commit results when done with a supplied commit message
+
 echo "Running main and committing & pushing results..."
 #python3 main.py
 git add results/*
