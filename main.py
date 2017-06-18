@@ -15,12 +15,12 @@ dataSet=TwitterDataSet(True,
                        negative_tweets=config.negative_tweets,
                        test_data=config.test_data,
                        vocab_path=config.vocab_path,
-                       remove_unknown_words=config.remove_unknown_words)
+                       remove_unknown_words=config.remove_unknown_words,
+                       min_word_occ=4)
 
 trainModel=Network(config.word_embedding_dim)
 trainModel.train(dataSet, config.validation_split_ratio,
                  config.generate_word_embeddings, config.embedding_corpus_name)
-# trainModel.load_model(config.model_json,config.model_h5)
 timestamp = str(int(time.time()))
 result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )
 print("\tWriting to: {}".format(result_file))

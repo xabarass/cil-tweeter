@@ -97,17 +97,7 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        # model.add(Convolution1D(350,
-        #                         4,
-        #                         padding='valid',
-        #                         activation='relu',
-        #                         strides=1))
-        # model.add(Convolution1D(350,
-        #                         7,
-        #                         padding='valid',
-        #                         activation='relu',
-        #                         strides=1))
-        model.add(LSTM(150))
+        model.add(LSTM(200))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 

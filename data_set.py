@@ -9,7 +9,8 @@ class TwitterDataSet:
                  negative_tweets=None,
                  test_data=None,
                  vocab_path=None,
-                 remove_unknown_words=False):
+                 remove_unknown_words=False,
+                 min_word_occ=5):
 
         print("Initializing...")
         # File paths
@@ -27,7 +28,7 @@ class TwitterDataSet:
         self.max_tweet_length=0
         self.word_count=1
         self.word_to_id={}
-        self.min_word_occurence=5
+        self.min_word_occurence=min_word_occ
         # Full tweets
         self.full_tweets=[]
 
