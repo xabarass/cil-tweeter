@@ -2,7 +2,7 @@ import numpy as np
 from keras.datasets import imdb
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.layers import LSTM, Convolution1D, Flatten, Dropout, Activation, Input
+from keras.layers import LSTM, Convolution1D, Flatten, Dropout, Activation, Input, Bidirectional
 from keras.layers.embeddings import Embedding
 from keras.layers.pooling import MaxPooling1D
 from keras.preprocessing import sequence
@@ -97,7 +97,7 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(200))
+        model.add(Bidirectional(LSTM(200)))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
