@@ -16,7 +16,7 @@ dataSet=TwitterDataSet(True,
                        test_data=config.test_data,
                        vocab_path=config.vocab_path,
                        remove_unknown_words=config.remove_unknown_words,
-                       min_word_occ=4)
+                       min_word_occ=3)
 
 trainModel=Network(config.word_embedding_dim)
 trainModel.train(dataSet, config.validation_split_ratio,
