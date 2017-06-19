@@ -15,6 +15,7 @@ dataSet=TwitterDataSet(True,
                        negative_tweets=config.negative_tweets,
                        test_data=config.test_data,
                        vocab_path=config.vocab_path,
+                       test_vocab_path=config.test_vocab_path,
                        remove_unknown_words=config.remove_unknown_words,
                        min_word_occ=3)
 

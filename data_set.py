@@ -9,6 +9,7 @@ class TwitterDataSet:
                  negative_tweets=None,
                  test_data=None,
                  vocab_path=None,
+                 test_vocab_path=None,
                  remove_unknown_words=False,
                  min_word_occ=5):
 
@@ -17,6 +18,7 @@ class TwitterDataSet:
         self.pos_tw_path=positive_tweets
         self.neg_tw_path=negative_tweets
         self.vocab_path=vocab_path
+        self.test_vocab_path=test_vocab_path
         self.test_data_path = test_data
         self.remove_unknown_words=remove_unknown_words
         # Train data
@@ -51,18 +53,27 @@ class TwitterDataSet:
 
     def _load_dictionary(self):
         print("Loading dictionary..")
+        test_vocab = {}
+        with open(self.test_vocab_path,'r') as test_vocab_file:
+            for line in test_vocab_file:
+                tokens = line.split(' ')
+                occurrence = tokens[-2]
+                word = tokens[-1]
+                test_vocab[word] = occurrence
+
         with open(self.vocab_path, 'r') as vocab:
             for line in vocab:
                 tokens = line.split(' ')
                 occurence = tokens[-2]
                 word = tokens[-1]
-                if int(occurence) >= self.min_word_occurence:
+                if ((int(occurence) > self.min_word_occurence) | ((int(occurrence) == self.min_word_occurence) & (word in test_vocab))) :
                     word = word.rstrip()
                     if word not in self.word_to_id:
                         self.word_to_id[word] = self.word_count
                         self.word_count= self.word_count+ 1
                 else:
                     self.unused_words.append(word)
+        print("Vocabulary of model has {} words".format(len(self.word_to_id)))
 
     def _convert_tweet(self, tweet):
         words = tweet.split(' ')[:]
