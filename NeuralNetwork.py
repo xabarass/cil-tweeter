@@ -29,7 +29,7 @@ class ModelEvaluater(Callback):
     def on_epoch_end(self, epoch, logs=None):
         print()
         print("Evaluating epoch...")
-        scores = self.model.evaluate(self.x_val, self.y_val, verbose=0)
+        scores = self.model.evaluate(self.x_val, self.y_val, verbose=1)
         print("Accuracy: %.2f%%" % (scores[1] * 100))
 
         print("Saving model...")
@@ -105,7 +105,7 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(500))
+        model.add(LSTM(400))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
@@ -114,6 +114,8 @@ class Network:
                       metrics=['accuracy'])
 
         print(model.summary())
+
+        self.model = model
 
         evaluater=ModelEvaluater(self, data_set, model, x_val, y_val,result_epoch_file)
         model.fit(x_train, y_train, epochs=6, batch_size=64, callbacks=[evaluater])
@@ -124,8 +126,6 @@ class Network:
             json_file.write(model_json)
         model.save_weights(model_h5_file)
         print("Saved model to disk")
-
-        self.model=model
 
     def load_model(self, structure, params):
         print("Loading model...")
