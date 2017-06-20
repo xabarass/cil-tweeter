@@ -8,7 +8,7 @@ remove_unknown_words=True
 
 # Further model parameters of main.py
 word_embedding_dim=400
-validation_split_ratio=0.01
+validation_split_ratio=0.99
 result_file='results/result.csv'
 
 # Further training parameters
