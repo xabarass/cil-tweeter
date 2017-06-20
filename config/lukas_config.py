@@ -1,8 +1,8 @@
 # Configuration
-positive_tweets='./twitter-datasets/train_pos.txt'
-negative_tweets='./twitter-datasets/train_neg.txt'
+positive_tweets='./twitter-datasets/train_pos_full.txt'
+negative_tweets='./twitter-datasets/train_neg_full.txt'
 test_data='./twitter-datasets/cleared_test_data.txt'
-vocab_path='./twitter-datasets/vocab.txt'
+vocab_path='./twitter-datasets/vocab_full.txt'
 test_vocab_path='./twitter-datasets/test_vocab.txt'
 remove_unknown_words=True
 
