@@ -17,11 +17,14 @@ import os
 import config
 
 class ModelEvaluater(Callback):
-    def __init__(self, model, x_val, y_val):
+    def __init__(self, network, data_set, model, x_val, y_val, result_epoch_file):
         super(Callback, self).__init__()
+        self.network=network
+        self.data_set=data_set
         self.model=model
         self.x_val=x_val
         self.y_val=y_val
+        self.result_epoch_file=result_epoch_file
 
     def on_epoch_end(self, epoch, logs=None):
         print()
@@ -35,6 +38,10 @@ class ModelEvaluater(Callback):
             json_file.write(model_json)
         self.model.save_weights("model-e{}.h5".format(epoch))
         print("Saved model to disk")
+        if self.result_epoch_file is not None:
+            self.network.predict(self.data_set, self.result_epoch_file.format(epoch))
+            print("Saved predictions of this epoch at {}".format(self.result_epoch_file.format(epoch)))
+
 
 class Network:
     def __init__(self, input_dimension):
@@ -72,7 +79,8 @@ class Network:
 
     def train(self, data_set, split_ratio, 
               generate_word_embeddings=False, embedding_corpus_name=None,
-              model_json_file=config.model_json, model_h5_file=config.model_h5):
+              model_json_file=config.model_json, model_h5_file=config.model_h5,
+              result_epoch_file=None):
         embedding_layer=None
         if generate_word_embeddings:
             embedding_matrix=self._generate_word_embeddings(data_set, embedding_corpus_name)
@@ -80,7 +88,7 @@ class Network:
                                 self.dimensions,
                                 weights=[embedding_matrix],
                                 input_length=data_set.max_tweet_length,
-                                trainable=False)
+                                trainable=True)
         else:
             embedding_layer = Embedding(data_set.word_count,
                                         self.dimensions,
@@ -107,8 +115,8 @@ class Network:
 
         print(model.summary())
 
-        evaluater=ModelEvaluater(model, x_val, y_val)
-        model.fit(x_train, y_train, epochs=4, batch_size=64, callbacks=[evaluater])
+        evaluater=ModelEvaluater(self, data_set, model, x_val, y_val,result_epoch_file)
+        model.fit(x_train, y_train, epochs=6, batch_size=64, callbacks=[evaluater])
 
         print("Saving model...")
         model_json = model.to_json()
