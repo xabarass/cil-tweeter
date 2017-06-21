@@ -19,6 +19,17 @@ from sklearn.tree import DecisionTreeClassifier
 from keras.wrappers.scikit_learn import KerasClassifier
 import config
 
+
+# Making sample_weight parameter explicit in KerasClassifier.fit method
+# as expected by scikit_learn using a decorator technique
+def decorate_kerasClassifier_fit(fit):
+    def wrap_fit(self,x,y,sample_weight=None,**kwargs):
+        return fit(self,x,y,sample_weight=sample_weight,**kwargs)
+    return wrap_fit
+
+KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
+
+
 class ModelEvaluater(Callback):
     def __init__(self, model, x_val, y_val):
         super(Callback, self).__init__()
@@ -129,11 +140,11 @@ class Network:
 
         mBuilder= ModelBuilder(data_set=data_set, dimensions=self.dimensions, embedding_matrix=embedding_matrix)
 
-        model = KerasClassifier(build_fn=mBuilder, epochs=150, batch_size=10, verbose=0)
+        model = KerasClassifier(build_fn=mBuilder, epochs=4, batch_size=32, verbose=1)
 
         bdt = AdaBoostClassifier(model,
-                                 algorithm="SAMME",
-                                 n_estimators=200)
+                                 algorithm="SAMME.R",
+                                 n_estimators=5)
 
         # Let's see if training is possible
         bdt.fit(x_train, y_train)
