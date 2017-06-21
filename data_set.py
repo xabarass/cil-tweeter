@@ -24,6 +24,9 @@ class TwitterDataSet:
         # Train data
         self.train_tweets=[]
         self.train_sentiments=[]
+        # Shuffled train data
+        self.shuffled_train_tweets=[]
+        self.shuffled_train_sentiments=[]
         # Test data
         self.test_tweets=[]
         # Utils data structures
@@ -33,6 +36,8 @@ class TwitterDataSet:
         self.min_word_occurence=min_word_occ
         # Full tweets
         self.full_tweets=[]
+        self.full_train_tweets=[]
+        self.full_test_tweets=[]
 
         self.unused_words=[]
 
@@ -75,58 +80,66 @@ class TwitterDataSet:
                     self.unused_words.append(word)
         print("Vocabulary of model has {} words".format(len(self.word_to_id)))
 
-    def _convert_tweet(self, tweet):
-        words = tweet.split(' ')[:]
+    # Lexical preprocessing
+    def _lexical_preprocess_tweet(self,tweet):
+        # instead of words = tweet.split(' ')[:]; words[-1] = words[-1].rstrip()
+        words = tweet.rstrip().split(' ')
         if len(words) > self.max_tweet_length:
             self.max_tweet_length = len(words)
+        return words
 
-        words[-1] = words[-1].rstrip()
-
+    # Map token sequence to id sequence
+    def _map_tweet_to_id_seq(self,token_seq):
         converted_tweet = []
-        for word in words:
+        for word in token_seq:
             if word in self.word_to_id:
                 converted_tweet.append(self.word_to_id[word])
             elif not self.remove_unknown_words:
                 converted_tweet.append(0) #Unknown word is 0
 
-        return converted_tweet
+    def _lexical_preprocess_and_map_to_id_tweet(self, tweet):
+        token_seq = self._lexical_preprocess_tweet(tweet)
+        return self._map_tweet_to_id_seq(token_seq)
 
-    def _add_full_tweet(self, tweet):
-        self.full_tweets.append(tweet.rstrip().split(' '))
+    def _add_test_tweet(self, tweet):
+        self.test_tweets.append(self._lexical_preprocess_and_map_to_id_tweet(tweet))
+        self.full_test_tweets.append(self._lexical_preprocess_tweet(tweet))
 
-    def _add_test_data(self, tweet):
-        self.test_tweets.append(self._convert_tweet(tweet))
-
-    def _add_tweet(self, tweet, sentiment):
-        self.train_tweets.append(self._convert_tweet(tweet))
+    def _add_train_tweet(self, tweet, sentiment):
+        self.train_tweets.append(self._lexical_preprocess_and_map_to_id_tweet(tweet))
         self.train_sentiments.append(sentiment)
+        self.full_train_tweets.append(self._lexical_preprocess_tweet(tweet))
 
+
+    # TODO: Need to store both lexically preprocessed and not original tweets to display misclassified samples
     def _load_data(self):
         print("Loading data...")
         with open(self.pos_tw_path, 'r') as pos, open(self.neg_tw_path, 'r') as neg, open(self.test_data_path,
                                                                                                   'r') as tst:
             for line in pos:
-                self._add_tweet(line, 1)
-                self._add_full_tweet(line)
+                self._add_train_tweet(line, 1)
             for line in neg:
-                self._add_tweet(line, 0)
-                self._add_full_tweet(line)
+                self._add_train_tweet(line, 0)
             for line in tst:
-                self._add_test_data(line)
-                self._add_full_tweet(line)
+                self._add_test_tweet(line)
+        self.full_tweets = self.full_train_tweets + self.full_test_tweets
+
 
     def shuffle_and_split(self, split_ratio):
         print("Shuffling data...")
         nb_validation_samples = int(split_ratio * len(self.train_tweets))
 
-        combined = list(zip(self.train_tweets, self.train_sentiments))
+        if not (hasattr(self, 'shuffled_train_tweets') and hasattr(self, 'shuffled_train_sentiments')):
+            combined = list(zip(self.train_tweets, self.train_sentiments))
+        else:
+            combined = list(zip(self.shuffled_train_tweets, self.shuffled_train_sentiments))
         random.shuffle(combined)
 
-        self.train_tweets[:], self.train_sentiments[:] = zip(*combined)
+        self.shuffled_train_tweets[:], self.shuffled_train_sentiments[:] = zip(*combined)
 
-        x_train = self.train_tweets[:nb_validation_samples]
-        y_train = self.train_sentiments[:nb_validation_samples]
-        x_val = self.train_tweets[nb_validation_samples:]
-        y_val = self.train_sentiments[nb_validation_samples:]
+        x_train = self.shuffled_train_tweets[:nb_validation_samples]
+        y_train = self.shuffled_train_sentiments[:nb_validation_samples]
+        x_val = self.shuffled_train_tweets[nb_validation_samples:]
+        y_val = self.shuffled_train_sentiments[nb_validation_samples:]
 
         return (x_train, y_train), (x_val, y_val)
