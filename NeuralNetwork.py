@@ -88,7 +88,7 @@ class Network:
                                 self.dimensions,
                                 weights=[embedding_matrix],
                                 input_length=data_set.max_tweet_length,
-                                trainable=True)
+                                trainable=False)
         else:
             embedding_layer = Embedding(data_set.word_count,
                                         self.dimensions,
@@ -105,7 +105,9 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(400))
+        model.add(LSTM(200),return_sequences=True)
+        model.add(LSTM(200),return_sequences=True)
+        model.add(LSTM(200))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
