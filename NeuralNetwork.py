@@ -105,8 +105,6 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(200,return_sequences=True))
-        model.add(LSTM(200,return_sequences=True))
         model.add(LSTM(200))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
@@ -128,6 +126,15 @@ class Network:
             json_file.write(model_json)
         model.save_weights(model_h5_file)
         print("Saved model to disk")
+
+
+        ## TODO: Print misclassified samples
+        #pred_val = self.model.predict(x_val, batch_size=64)
+        #for i in range(pred_val.shape[0]):
+        #    if ((pred_val[i] > 0.5) and (y_val[i] == -1)) or \
+        #       ((pred_val[i] <= 0.5) and (y_val[i] == 1)):
+        #        # Print misclassified tweet
+
 
     def load_model(self, structure, params):
         print("Loading model...")
