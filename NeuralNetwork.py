@@ -14,6 +14,9 @@ from keras.callbacks import Callback
 from gensim.models import Word2Vec
 from pathlib import Path
 import os
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+from keras.wrappers.scikit_learn import KerasClassifier
 import config
 
 class ModelEvaluater(Callback):
@@ -35,6 +38,45 @@ class ModelEvaluater(Callback):
             json_file.write(model_json)
         self.model.save_weights("model-e{}.h5".format(epoch))
         print("Saved model to disk")
+
+class ModelBuilder:
+    def __init__(self, embedding_matrix, dimensions, data_set):
+        self.embedding_matrix=embedding_matrix
+        self.dimensions=dimensions
+        self.data_set = data_set
+
+    def __call__(self):
+        data_set=self.data_set
+
+        embedding_layer=None
+        if self.embedding_matrix is not None:
+            embedding_layer = Embedding(data_set.word_count,
+                                self.dimensions,
+                                weights=[self.embedding_matrix],
+                                input_length=data_set.max_tweet_length,
+                                trainable=False)
+        else:
+            embedding_layer = Embedding(data_set.word_count,
+                                        self.dimensions,
+                                        input_length=data_set.max_tweet_length)
+
+        print("Max tweet length: %d"%data_set.max_tweet_length)
+
+        print("Word count %d dimensions %d" %(data_set.word_count, self.dimensions))
+
+        model = Sequential()
+        model.add(embedding_layer)
+        model.add(Bidirectional(LSTM(200)))
+        model.add(Dropout(0.5))
+        model.add(Dense(1, activation='sigmoid'))
+
+        model.compile(loss='binary_crossentropy',
+                      optimizer='adam',
+                      metrics=['accuracy'])
+
+        print(model.summary())
+
+        return model
 
 class Network:
     def __init__(self, input_dimension):
@@ -70,54 +112,47 @@ class Network:
 
         return embedding_matrix
 
-    def train(self, data_set, split_ratio, 
+    def train(self, data_set, split_ratio,
               generate_word_embeddings=False, embedding_corpus_name=None,
               model_json_file=config.model_json, model_h5_file=config.model_h5):
-        embedding_layer=None
-        if generate_word_embeddings:
-            embedding_matrix=self._generate_word_embeddings(data_set, embedding_corpus_name)
-            embedding_layer = Embedding(data_set.word_count,
-                                self.dimensions,
-                                weights=[embedding_matrix],
-                                input_length=data_set.max_tweet_length,
-                                trainable=False)
-        else:
-            embedding_layer = Embedding(data_set.word_count,
-                                        self.dimensions,
-                                        input_length=data_set.max_tweet_length)
 
-        print("Max tweet length: %d"%data_set.max_tweet_length)
+        embedding_matrix=None
+        if generate_word_embeddings:
+            embedding_matrix = self._generate_word_embeddings(data_set, embedding_corpus_name)
+
+
 
         (x_train, y_train), (x_val, y_val)=data_set.shuffle_and_split(split_ratio)
 
         x_train = sequence.pad_sequences(x_train, maxlen=data_set.max_tweet_length)
         x_val = sequence.pad_sequences(x_val, maxlen=data_set.max_tweet_length)
 
-        print("Word count %d dimensions %d" %(data_set.word_count, self.dimensions))
+        mBuilder= ModelBuilder(data_set=data_set, dimensions=self.dimensions, embedding_matrix=embedding_matrix)
 
-        model = Sequential()
-        model.add(embedding_layer)
-        model.add(Bidirectional(LSTM(200)))
-        model.add(Dropout(0.5))
-        model.add(Dense(1, activation='sigmoid'))
+        model = KerasClassifier(build_fn=mBuilder, epochs=150, batch_size=10, verbose=0)
 
-        model.compile(loss='binary_crossentropy',
-                      optimizer='adam',
-                      metrics=['accuracy'])
+        bdt = AdaBoostClassifier(model,
+                                 algorithm="SAMME",
+                                 n_estimators=200)
 
-        print(model.summary())
+        # Let's see if training is possible
+        bdt.fit(x_train, y_train)
 
-        evaluater=ModelEvaluater(model, x_val, y_val)
-        model.fit(x_train, y_train, epochs=4, batch_size=64, callbacks=[evaluater])
+        # model=mBuilder._create_model()
+        #
+        # evaluater=ModelEvaluater(model, x_val, y_val)
+        # model.fit(x_train, y_train, epochs=4, batch_size=64, callbacks=[evaluater])
+        #
+        # print("Saving model...")
+        # model_json = model.to_json()
+        # with open(model_json_file, "w") as json_file:
+        #     json_file.write(model_json)
+        # model.save_weights(model_h5_file)
+        # print("Saved model to disk")
+        #
+        # self.model=model
 
-        print("Saving model...")
-        model_json = model.to_json()
-        with open(model_json_file, "w") as json_file:
-            json_file.write(model_json)
-        model.save_weights(model_h5_file)
-        print("Saved model to disk")
-
-        self.model=model
+        print("Finished training!")
 
     def load_model(self, structure, params):
         print("Loading model...")
