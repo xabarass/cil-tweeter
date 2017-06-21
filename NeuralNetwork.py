@@ -105,8 +105,8 @@ class Network:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(200),return_sequences=True)
-        model.add(LSTM(200),return_sequences=True)
+        model.add(LSTM(200,return_sequences=True))
+        model.add(LSTM(200,return_sequences=True))
         model.add(LSTM(200))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
