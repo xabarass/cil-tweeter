@@ -66,7 +66,7 @@ class TwitterDataSet:
                 tokens = line.split(' ')
                 occurence = tokens[-2]
                 word = tokens[-1]
-                if ((int(occurence) > self.min_word_occurence) | ((int(occurrence) == self.min_word_occurence) & (word in test_vocab))) :
+                if ((int(occurence) >= self.min_word_occurence) ): # or ((int(occurrence) == self.min_word_occurence) and (word in test_vocab))) :
                     word = word.rstrip()
                     if word not in self.word_to_id:
                         self.word_to_id[word] = self.word_count

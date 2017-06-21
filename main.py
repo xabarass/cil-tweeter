@@ -17,7 +17,7 @@ dataSet=TwitterDataSet(True,
                        vocab_path=config.vocab_path,
                        test_vocab_path=config.test_vocab_path,
                        remove_unknown_words=config.remove_unknown_words,
-                       min_word_occ=3)
+                       min_word_occ=4)
 
 timestamp = str(int(time.time()))
 result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )
