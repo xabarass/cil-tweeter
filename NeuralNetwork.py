@@ -56,6 +56,9 @@ class ModelBuilder:
         self.dimensions=dimensions
         self.data_set = data_set
 
+    #def register_ensemble(self, ensemble_classifier):
+    #    self.ensemble_ = ensemble_classifier
+
     def __call__(self):
         data_set=self.data_set
 
@@ -77,7 +80,7 @@ class ModelBuilder:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Bidirectional(LSTM(200)))
+        model.add(Bidirectional(LSTM(150)))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
@@ -86,8 +89,14 @@ class ModelBuilder:
                       metrics=['accuracy'])
 
         print(model.summary())
+        
+        # Evaluation - TODO: wrap model.fit with an evaluate method
+        #if hasattr(self,"ensemble_"):
+        #    # TODO: Write a model.fit wrapper that does somehting like the following:
+        #    ensemble_.staged_score(x_val,y_val)
 
         return model
+
 
 class Network:
     def __init__(self, input_dimension):
@@ -140,14 +149,22 @@ class Network:
 
         mBuilder= ModelBuilder(data_set=data_set, dimensions=self.dimensions, embedding_matrix=embedding_matrix)
 
-        model = KerasClassifier(build_fn=mBuilder, epochs=4, batch_size=32, verbose=1)
+        
+        model = KerasClassifier(build_fn=mBuilder, epochs=3, batch_size=64, verbose=1)
 
         bdt = AdaBoostClassifier(model,
                                  algorithm="SAMME.R",
-                                 n_estimators=5)
+                                 n_estimators=10)
+
+        # Store reference to AdaBoost in mBuilder to make AdaBoost internals accessible from Keras model
+        # mBuilder.register_ensemble(bdt)
 
         # Let's see if training is possible
         bdt.fit(x_train, y_train)
+
+        print("***** Evaluation *****")
+        for iboost, accuracy in enumerate(bdt.staged_score(x_val,y_val)):
+            print( "\t{}-th boosting iteration: accuracy = {}".format(iboost,accuracy) )
 
         # model=mBuilder._create_model()
         #
@@ -163,7 +180,14 @@ class Network:
         #
         # self.model=model
 
+        self.base_estimator = model
+        self.model = bdt
         print("Finished training!")
+
+        # evaluation
+
+
+
 
     def load_model(self, structure, params):
         print("Loading model...")
@@ -182,7 +206,7 @@ class Network:
             raise Exception("You need to train or load pretrained model in order to predict")
 
         x_test = sequence.pad_sequences(data_set.test_tweets, maxlen=data_set.max_tweet_length)
-        predictions = self.model.predict(x_test, batch_size=64)
+        predictions = self.model.predict(x_test) #, batch_size=64)
 
         print("Done with predictions, generating submission file...")
 
