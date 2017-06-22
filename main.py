@@ -4,7 +4,7 @@ import logging
 
 from NeuralNetwork import Network
 import config
-from data_set import TwitterDataSet
+from TwitterDataset import TwitterDataSet
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 

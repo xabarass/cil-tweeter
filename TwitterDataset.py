@@ -4,6 +4,8 @@ import os
 import random
 import numpy as np
 
+import config
+
 class TwitterDataSet:
     def __init__(self, should_train, positive_tweets=None,
                  negative_tweets=None,
@@ -122,14 +124,23 @@ class TwitterDataSet:
                 self._add_train_tweet(line, 0)
             for line in tst:
                 self._add_test_tweet(line)
+        if config.test_run:
+            self.train_tweets     = self.train_tweets[                :int(config.test_run_data_ratio*len(self.train_tweets)    )  ]
+            self.train_sentiments = self.train_sentiments[            :int(config.test_run_data_ratio*len(self.train_sentiments))  ]
+            self.test_tweets      = self.test_tweets[                 :int(config.test_run_data_ratio*len(self.test_tweets)     )  ]
+            self.full_train_tweets      = self.full_train_tweets[     :int(config.test_run_data_ratio*len(self.full_train_tweets)) ]
+            self.full_test_tweets      = self.full_test_tweets[       :int(config.test_run_data_ratio*len(self.full_test_tweets))  ]
+
+
         self.full_tweets = self.full_train_tweets + self.full_test_tweets
+
 
 
     def shuffle_and_split(self, split_ratio):
         print("Shuffling data...")
         nb_validation_samples = int(split_ratio * len(self.train_tweets))
 
-        if not (hasattr(self, 'shuffled_train_tweets') and hasattr(self, 'shuffled_train_sentiments')):
+        if len(self.shuffled_train_tweets) == 0 and len(self.shuffled_train_sentiments) == 0:
             combined = list(zip(self.train_tweets, self.train_sentiments))
         else:
             combined = list(zip(self.shuffled_train_tweets, self.shuffled_train_sentiments))
