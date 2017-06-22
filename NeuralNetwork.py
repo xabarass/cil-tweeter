@@ -80,7 +80,7 @@ class ModelBuilder:
 
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Bidirectional(LSTM(150)))
+        model.add(LSTM(150))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))
 
