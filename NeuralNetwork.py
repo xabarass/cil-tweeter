@@ -32,15 +32,16 @@ class ModelEvaluater(Callback):
         scores = self.model.evaluate(self.x_val, self.y_val, verbose=1)
         print("Accuracy: %.2f%%" % (scores[1] * 100))
 
-        print("Saving model...")
-        model_json = self.model.to_json()
-        with open("model-e{}.json".format(epoch), "w") as json_file:
-            json_file.write(model_json)
-        self.model.save_weights("model-e{}.h5".format(epoch))
-        print("Saved model to disk")
-        if self.result_epoch_file is not None:
-            self.network.predict(self.data_set, self.result_epoch_file.format(epoch))
-            print("Saved predictions of this epoch at {}".format(self.result_epoch_file.format(epoch)))
+        if not config.test_run:
+            print("Saving model...")
+            model_json = self.model.to_json()
+            with open("model-e{}.json".format(epoch), "w") as json_file:
+                json_file.write(model_json)
+            self.model.save_weights("model-e{}.h5".format(epoch))
+            print("Saved model to disk")
+            if self.result_epoch_file is not None:
+                self.network.predict(self.data_set, self.result_epoch_file.format(epoch))
+                print("Saved predictions of this epoch at {}".format(self.result_epoch_file.format(epoch)))
 
 
 class Network:
@@ -80,7 +81,7 @@ class Network:
     def train(self, data_set, split_ratio, 
               generate_word_embeddings=False, embedding_corpus_name=None,
               model_json_file=config.model_json, model_h5_file=config.model_h5,
-              result_epoch_file=None):
+              result_epoch_file=None, misclassified_samples_file=None):
         embedding_layer=None
         if generate_word_embeddings:
             embedding_matrix=self._generate_word_embeddings(data_set, embedding_corpus_name)
@@ -96,7 +97,7 @@ class Network:
 
         print("Max tweet length: %d"%data_set.max_tweet_length)
 
-        (x_train, y_train), (x_val, y_val)=data_set.shuffle_and_split(split_ratio)
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = data_set.shuffle_and_split(split_ratio)
 
         x_train = sequence.pad_sequences(x_train, maxlen=data_set.max_tweet_length)
         x_val = sequence.pad_sequences(x_val, maxlen=data_set.max_tweet_length)
@@ -118,7 +119,7 @@ class Network:
         self.model = model
 
         evaluater=ModelEvaluater(self, data_set, model, x_val, y_val,result_epoch_file)
-        model.fit(x_train, y_train, epochs=6, batch_size=64, callbacks=[evaluater])
+        model.fit(x_train, y_train, epochs=3, batch_size=64, callbacks=[evaluater])
 
         print("Saving model...")
         model_json = model.to_json()
@@ -127,14 +128,31 @@ class Network:
         model.save_weights(model_h5_file)
         print("Saved model to disk")
 
+        def evaluate_misclassified_samples(x, y, x_orig, phase):
+            misclassified_samples = []
+            pred_y = self.model.predict(x, batch_size=64).reshape([-1])
 
-        ## TODO: Print misclassified samples
-        #pred_val = self.model.predict(x_val, batch_size=64)
-        #for i in range(pred_val.shape[0]):
-        #    if ((pred_val[i] > 0.5) and (y_val[i] == -1)) or \
-        #       ((pred_val[i] <= 0.5) and (y_val[i] == 1)):
-        #        # Print misclassified tweet
+            def preprocessed_tweet_len(tweet):
+                return len(data_set.map_tweet_to_id_seq(
+                               data_set.filter_tweet(
+                                   data_set.lexical_preprocessing_tweet(tweet)), config.remove_unknown_words ))
 
+            for i in range(pred_y.shape[0]):
+                if ((pred_y[i] > 0.5) and (y[i] == 0)) or \
+                   ((pred_y[i] <= 0.5) and (y[i] == 1)):
+                    misclassified_samples.append( ( 2*(pred_y[i]-0.5)*2*(y[i]-0.5), 2*(y[i]-0.5),
+                                                    x_orig[i],
+                                                    ' '.join([data_set.id_to_word[id] for id in x[i][-preprocessed_tweet_len(x_orig[i]):]]) ) )
+
+            misclassified_samples.sort()
+
+            with open(misclassified_samples_file.format(phase), 'a+') as mc_s_f:
+                mc_s_f.write("\n***** Misclassified {} samples *****\n".format(phase))
+                for sample in misclassified_samples:
+                    mc_s_f.write( "\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(sample[0], sample[1], sample[2], sample[3]) )
+
+        evaluate_misclassified_samples(x_val,  y_val, x_orig_val, "validation")
+        evaluate_misclassified_samples(x_train,y_train,x_orig_train,"training")
 
     def load_model(self, structure, params):
         print("Loading model...")

@@ -25,6 +25,7 @@ result_epoch_file = ('-e{}_' + timestamp + '.').join( config.result_file.split('
 trainModel=Network(config.word_embedding_dim)
 trainModel.train(dataSet, config.validation_split_ratio,
                  config.generate_word_embeddings, config.embedding_corpus_name,
-                 result_epoch_file=result_epoch_file)
+                 result_epoch_file=result_epoch_file,
+                 misclassified_samples_file=config.misclassified_samples_file)
 print("\tWriting to: {}".format(result_file))
 trainModel.predict(dataSet, result_file)
