@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import numpy as np
+import TextRegularizer as tr
 
 import config
 
@@ -83,6 +84,15 @@ class TwitterDataSet:
                         self.word_count= self.word_count+ 1
                 else:
                     self.unused_words.append(word)
+
+        # Get special words and add them to vocab if needed
+        special_words=tr.get_special_words(self.word_to_id)
+        for sw in special_words:
+            if sw not in self.word_to_id:
+                print("Extending dict with special word %s" %sw)
+                self.word_to_id[sw]=self.word_count
+                self.word_count = self.word_count + 1
+
         print("Vocabulary of model has {} words".format(len(self.word_to_id)))
 
         # build reverse lookup dictionary
@@ -94,7 +104,17 @@ class TwitterDataSet:
     def lexical_preprocessing_tweet(self, tweet):
         # instead of words = tweet.split(' ')[:]; words[-1] = words[-1].rstrip()
         words = tweet.rstrip().split(' ')
-        return words
+
+        resulting_words=[]
+        for word in words:
+            new_word_list=tr.regularize_word(word)
+            for new_word in new_word_list:
+                if new_word in self.word_to_id:
+                    resulting_words.append(new_word)
+                else:
+                    resulting_words.append(tr.tag_word(new_word))
+
+        return resulting_words
 
     # Preprocessing subsequent to lexer phase
     def filter_tweet(self, token_seq):
@@ -147,8 +167,6 @@ class TwitterDataSet:
                 self._add_test_tweet(line)
 
         self.full_tweets = self.full_train_tweets + self.full_test_tweets
-
-
 
     def shuffle_and_split(self, split_ratio):
         print("Shuffling data...")

@@ -65,6 +65,7 @@ class Network:
                                             workers=8,
                                             sg=1,
                                             iter=10)
+
             print("Word embeddings generated!")
 
         if embedding_corpus_name:
@@ -152,7 +153,7 @@ class Network:
                     mc_s_f.write( "\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(sample[0], sample[1], sample[2], sample[3]) )
 
         evaluate_misclassified_samples(x_val,  y_val, x_orig_val, "validation")
-        evaluate_misclassified_samples(x_train,y_train,x_orig_train,"training")
+        evaluate_misclassified_samples(x_train,y_train, x_orig_train,"training")
 
     def load_model(self, structure, params):
         print("Loading model...")
