@@ -23,11 +23,13 @@ import config
 # Making sample_weight parameter explicit in KerasClassifier.fit method
 # as expected by scikit_learn using a decorator technique
 def decorate_kerasClassifier_fit(fit):
-    def wrap_fit(self,x,y,sample_weight=None,**kwargs):
+    def decorated_fit(self,x,y,sample_weight=None,**kwargs):
         return fit(self,x,y,sample_weight=sample_weight,**kwargs)
-    return wrap_fit
+    return decorated_fit
 
 KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
+
+# Evaluation - TODO: wrap model.fit with an evaluate method
 
 
 class ModelEvaluater(Callback):
@@ -56,8 +58,8 @@ class ModelBuilder:
         self.dimensions=dimensions
         self.data_set = data_set
 
-    #def register_ensemble(self, ensemble_classifier):
-    #    self.ensemble_ = ensemble_classifier
+    def register_network(self, network):
+        self._network = network
 
     def __call__(self):
         data_set=self.data_set
@@ -89,11 +91,37 @@ class ModelBuilder:
                       metrics=['accuracy'])
 
         print(model.summary())
-        
-        # Evaluation - TODO: wrap model.fit with an evaluate method
-        #if hasattr(self,"ensemble_"):
-        #    # TODO: Write a model.fit wrapper that does somehting like the following:
-        #    ensemble_.staged_score(x_val,y_val)
+
+        model._network = self._network
+
+        # Decorate model.fit with writer of samples ranked by weights. This decorator may potentially also be used to
+        # add preprocessing to the model (to use raw tweets as x)
+        def decorate_kerasSequentialfit(receiver, fit):
+            def wrapped_fit(x, y, batch_size=32, epochs=10, verbose=1, callbacks=None,
+                            validation_split=0., validation_data=None, shuffle=True,
+                            class_weight=None, sample_weight=None, initial_epoch=0, **kwargs):
+                if sample_weight is not None:
+                    # TODO: get a reference to data_set and x_orig
+                    def preprocessed_tweet_len(tweet):
+                        return len(data_set.map_tweet_to_id_seq(
+                            data_set.filter_tweet(
+                                data_set.lexical_preprocessing_tweet(tweet)), config.remove_unknown_words))
+
+                    ranked_weights = [(i[1], i[0]) for i in enumerate(sample_weight)]
+                    ranked_weights.sort()
+                    # with open(training_samples_sorted_by_weight.format(phase), 'a+') as tssbwf:
+                    print("\n***** Training samples sorted by weight *****\n")
+                    for weight, i in ranked_weights:
+                        print("\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(weight, y[i], data_set.x_orig[i], ' '.join(
+                            [data_set.id_to_word[id] for id in x[i][-preprocessed_tweet_len(data_set.x_orig[i]):]])))
+
+                return fit(receiver, x, y, batch_size=32, epochs=10, verbose=1, callbacks=None,
+                           validation_split=0., validation_data=None, shuffle=True,
+                           class_weight=None, sample_weight=None, initial_epoch=0, **kwargs)
+
+            return wrapped_fit
+
+        model.fit = decorate_kerasSequentialfit(model, Sequential.fit)
 
         return model
 
@@ -149,15 +177,19 @@ class Network:
 
         mBuilder= ModelBuilder(data_set=data_set, dimensions=self.dimensions, embedding_matrix=embedding_matrix)
 
-        
+        # Store reference to Network in mBuilder to access AdaBoost internals from Keras model
+        mBuilder.register_network(self)
+
         model = KerasClassifier(build_fn=mBuilder, epochs=3, batch_size=64, verbose=1)
 
         bdt = AdaBoostClassifier(model,
                                  algorithm="SAMME.R",
                                  n_estimators=10)
 
-        # Store reference to AdaBoost in mBuilder to make AdaBoost internals accessible from Keras model
-        # mBuilder.register_ensemble(bdt)
+        self.base_estimator = model
+        self.model = bdt
+
+
 
         # Let's see if training is possible
         bdt.fit(x_train, y_train)
@@ -180,8 +212,6 @@ class Network:
         #
         # self.model=model
 
-        self.base_estimator = model
-        self.model = bdt
         print("Finished training!")
 
         # evaluation
