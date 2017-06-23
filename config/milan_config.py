@@ -19,3 +19,8 @@ embedding_corpus_name='small.emb'
 # Load model parameters
 model_json = 'model.json'
 model_h5 = 'model.h5'
+
+# Test run parameters
+test_run = True
+test_run_data_ratio=0.01
+
