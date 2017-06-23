@@ -166,11 +166,11 @@ class TwitterDataSet:
 
         nb_validation_samples = int(split_ratio * len(self.shuffled_train_tweets))
 
-        x_train = self.shuffled_train_tweets[:nb_validation_samples]
-        y_train = self.shuffled_train_sentiments[:nb_validation_samples]
-        x_val = self.shuffled_train_tweets[nb_validation_samples:]
-        y_val = self.shuffled_train_sentiments[nb_validation_samples:]
-        x_orig_train = self.shuffled_original_train_tweets[:nb_validation_samples]
-        x_orig_val   = self.shuffled_original_train_tweets[nb_validation_samples:]
+        self.x_train = self.shuffled_train_tweets[:nb_validation_samples]
+        self.y_train = self.shuffled_train_sentiments[:nb_validation_samples]
+        self.x_val = self.shuffled_train_tweets[nb_validation_samples:]
+        self.y_val = self.shuffled_train_sentiments[nb_validation_samples:]
+        self.x_orig_train = self.shuffled_original_train_tweets[:nb_validation_samples]
+        self.x_orig_val   = self.shuffled_original_train_tweets[nb_validation_samples:]
 
-        return (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val)
+        return (self.x_train, self.y_train, self.x_orig_train), (self.x_val, self.y_val, self.x_orig_val)

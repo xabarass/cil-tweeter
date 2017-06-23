@@ -120,8 +120,8 @@ class ModelBuilder:
                     # with open(training_samples_sorted_by_weight.format(phase), 'a+') as tssbwf:
                     print("\n***** Training samples sorted by weight *****\n")
                     for weight, i in ranked_weights:
-                        print("\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(weight, y[i], data_set.x_orig[i], ' '.join(
-                            [data_set.id_to_word[id] for id in x[i][-preprocessed_tweet_len(data_set.x_orig[i]):]])))
+                        print("\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(weight, y[i], data_set.x_orig_train[i], ' '.join(
+                            [data_set.id_to_word[id] for id in x[i][-preprocessed_tweet_len(data_set.x_orig_train[i]):]])))
 
                 return fit(receiver, x, y, batch_size=32, epochs=10, verbose=1, callbacks=None,
                            validation_split=0., validation_data=None, shuffle=True,
@@ -197,7 +197,7 @@ class Network:
 
         bdt = AdaBoostClassifier(model,
                                  algorithm="SAMME.R",
-                                 n_estimators=10)
+                                 n_estimators=3)
 
         self.base_estimator = model
         self.model = bdt

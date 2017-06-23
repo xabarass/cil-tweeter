@@ -54,6 +54,6 @@ if azure_config:
 elif local_config:
     # Test run parameters
     test_run = True
-    test_run_data_ratio=0.01
+    test_run_data_ratio=0.005
 else:
     raise
