@@ -119,7 +119,7 @@ class Network:
         self.model = model
 
         evaluater=ModelEvaluater(self, data_set, model, x_val, y_val,result_epoch_file)
-        model.fit(x_train, y_train, epochs=3, batch_size=64, callbacks=[evaluater])
+        model.fit(x_train, y_train, epochs=4, batch_size=64, callbacks=[evaluater])
 
         print("Saving model...")
         model_json = model.to_json()
