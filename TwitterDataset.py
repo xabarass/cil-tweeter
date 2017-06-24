@@ -3,25 +3,18 @@ import logging
 import os
 import random
 import numpy as np
-import TextRegularizer as tr
+from TextRegularizer import TextRegularizer
 
 import config
 
 
-
-# TODO: Separate classes for:
-#       The simple vocabulary and all associated data structures a separate/nested object as well as current
-#       train/test/orig_train dataset
-
 class TwitterDataSet:
-    def __init__(self, should_train,
+    def __init__(self,
                  positive_tweets=None,
                  negative_tweets=None,
                  test_data=None,
                  vocab_path=None,
-                 test_vocab_path=None,
-                 remove_unknown_words=False,
-                 min_word_occ=5):
+                 test_vocab_path=None):
 
         print("Loading TwitterDataSet...")
         # File paths
@@ -64,18 +57,19 @@ class TwitterDataSet:
             for line in tst:
                 add_test_tweet(line)
 
-    def create_vocabulary(self, preprocessor=DefaultVocabularyTransformer(DefaultPreprocessor())):
+    def create_vocabulary(self, vocab_transformer):
         return Vocabulary(self.vocab_path,
-                          self.test_vocab_path,
-                          preprocessor)
+                          vocab_transformer,
+                          self.test_vocab_path)
 
-    def create_preprocessed_dataset(self, vocabulary):
-        return PreprocessedDataset(self, vocabulary)
+    def create_preprocessed_dataset(self, vocabulary, training_validation_split_ratio):
+        return PreprocessedDataset(self, vocabulary, training_validation_split_ratio)
 
 
 class PreprocessedDataset:
-    def __init__(self, twitter_dataset, vocabulary):
+    def __init__(self, twitter_dataset, vocabulary, training_validation_split_ratio):
         self.vocabulary = vocabulary
+        self.training_validation_split_ratio = training_validation_split_ratio
 
         if not config.test_run:
             self.shuffled_original_train_tweets = twitter_dataset.original_train_tweets[:]
@@ -112,7 +106,7 @@ class PreprocessedDataset:
         self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments = zip(*combined_training_dataset)
 
         # TODO: Remove implicit config.validation_split_ratio dependency
-        nb_validation_samples = int(config.validation_split_ratio * len(self.shuffled_train_tweets))
+        nb_validation_samples = int(self.training_validation_split_ratio * len(self.shuffled_train_tweets))
 
         x_train = self.shuffled_train_tweets[:nb_validation_samples]
         x_orig_train = self.shuffled_original_train_tweets[:nb_validation_samples]
@@ -125,7 +119,7 @@ class PreprocessedDataset:
 
 
 class Vocabulary:
-    def __init__(self, vocab_path, test_vocab_path=None, vocab_transformer=DefaultVocabularyTransformer(DefaultPreprocessor())):
+    def __init__(self, vocab_path, vocab_transformer, test_vocab_path=None):
         """Load and compute vocabulary from output of twitter-datasets/build_vocab.sh"""
         if vocab_transformer is None:
              raise Exception("Not a valid vocabulary transformer supplied: %s" % repr(vocab_transformer))
@@ -189,8 +183,8 @@ class Vocabulary:
 
 class DefaultVocabularyTransformer:
     """Function object that creates word_to_id vocabulary dictionary from word_to_occurrence statistics of corpus"""
-    def __init__(self, preprocess_filter=default_preprocess_filter):
-        self.preprocess_filter = preprocess_filter
+    def __init__(self, preprocessor):
+        self.preprocessor = preprocessor
         self._vocabulary_generated = False
 
     def __call__(self, word_to_occurrence_full):
@@ -202,7 +196,7 @@ class DefaultVocabularyTransformer:
         word_to_id['<unk>'] = new_word_id()
 
         # Get special symbols from regularizer and add them to the vocabulary
-        for sw in tr.get_special_words():
+        for sw in TextRegularizer.get_special_words():
             # print("Adding special symbol to vocabulary %s" % sw)
             word_to_id[sw] = new_word_id()
 
@@ -211,7 +205,7 @@ class DefaultVocabularyTransformer:
         #word_processed = set()
         for word in word_to_occurrence_full:
             word_in_vocab, preprocessed_words = \
-                self.preprocess_filter.first_pass_vocab(word, word_to_occurrence_full[word])
+                self.preprocessor.first_pass_vocab(word, word_to_occurrence_full[word])
             assert isinstance(word_in_vocab,bool)
             assert isinstance(preprocessed_words,list)
             if word_in_vocab:
@@ -230,7 +224,7 @@ class DefaultVocabularyTransformer:
         #     if word not in word_processed:
         #         if word not in word_to_id:
         #             word_in_vocab, preprocessed_words = \
-        #                 self.preprocess_filter.second_pass_vocab(word, word_to_occurrence_full[word], word_to_occurrence)
+        #                 self.preprocessor.second_pass_vocab(word, word_to_occurrence_full[word], word_to_occurrence)
         #             assert isinstance(word_in_vocab,bool)
         #             assert isinstance(preprocessed_words,list)
         #             if word_in_vocab:
@@ -250,8 +244,9 @@ class DefaultVocabularyTransformer:
 
 
 class DefaultPreprocessor:
-    def __init__(self):
-        pass
+    def __init__(self, min_word_occurrence=5, remove_unknown_words=False):
+        self.min_word_occurence = min_word_occurence
+        self.remove_unknown_words =remove_unknown_words
 
     def register_vocabulary(self, vocabulary):
         self.vocabulary = vocabulary
@@ -261,7 +256,7 @@ class DefaultPreprocessor:
     def first_pass_vocab(self, word,occurrence):
         return (occurrence >= self.min_word_occurence), self.tr.regularize_word_vocab(word) # Note we should actually accumulate all of the regularized words
 
-    # # Question: Do we actually need a second pass? The hashtags normally do not add any further words...
+    # # FIXME: Do we actually need a second pass? The hashtags normally do not add any further words...
     # def second_pass_vocab(self, word, occurrence, word_to_occurrence):
     #     return (occurrence >= self.min_word_occurence), [new_word for new_word in filter(lambda w: w not in self.vocabulary.word_to_id,
     #                                                   self.tr.regularize_word_vocab(word, word_to_occurrence))]
@@ -297,4 +292,4 @@ class DefaultPreprocessor:
 
     def filter_unknown_words(self, token_seq):
         # TODO: remove config dependency
-        return [word for word in filter(lambda w: w != '<unk>' or not config.remove_unknown_words, token_seq)]
+        return [word for word in filter(lambda w: w != '<unk>' or not self.remove_unknown_words, token_seq)]
