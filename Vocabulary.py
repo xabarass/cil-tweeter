@@ -59,7 +59,7 @@ class Vocabulary:
     def preprocess_and_map_tweet_to_id_seq(self, tweet):
         """Preprocess tweet with lexical/stemming/filtering phase and replace every token by vocabulary integer id"""
         assert isinstance(tweet,str)
-        token_seq = self.preprocessor.preprocess_tweet(tweet)
+        token_seq = self.preprocessor.preprocess_tweet(tweet, self.word_to_occurrence)
         return self.map_tweet_to_id_seq(token_seq)
 
     def map_tweet_to_id_seq(self, tweet_token_seq):
@@ -85,7 +85,6 @@ class DefaultVocabularyTransformer:
         word_to_id = {}
         new_word_id = lambda : len(word_to_id)
         word_to_occurrence = {}
-        word_to_id['<unk>'] = new_word_id()
 
         # Get special symbols from regularizer and add them to the vocabulary
         for sw in TextRegularizer.get_special_words():
@@ -95,23 +94,25 @@ class DefaultVocabularyTransformer:
 
         # Two passes of vocabulary creation
         # First create all standard words, secondly add non-standard specially treated words
-        #word_processed = set()
+        # word_processed = set()
         for word in word_to_occurrence_full:
-            word_in_vocab, preprocessed_words = \
-                self.preprocessor.first_pass_vocab(word, word_to_occurrence_full[word])
-            assert isinstance(word_in_vocab,bool)
-            assert isinstance(preprocessed_words,list)
-            if word_in_vocab:
-                #word_processed.add(word)
-                for preprocessed_word in preprocessed_words:
-                    assert isinstance(preprocessed_word, str)
-                    if preprocessed_word not in word_to_id:
-                        word_to_id[preprocessed_word] = new_word_id()
-                        word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
-                    else:
-                        word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
+            self.preprocessor.first_pass_vocab(word, word_to_occurrence_full)
+            # assert isinstance(word_in_vocab,bool)
+            # assert isinstance(preprocessed_words,list)
+            # if word_in_vocab:
+            #     #word_processed.add(word)
+            #     for preprocessed_word in preprocessed_words:
+            #         assert isinstance(preprocessed_word, str)
+            #         if preprocessed_word not in word_to_id:
+            #             word_to_id[preprocessed_word] = new_word_id()
+            #             word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
+            #         else:
+            #             word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
             #else:
             #    unused_words_first_pass.append(word)
+
+        for word in word_to_occurrence_full:
+            self.preprocessor.remove_less_frequent_word(word, word_to_occurrence_full)
 
         # for word in word_to_occurrence_full:
         #     if word not in word_processed:
@@ -133,34 +134,43 @@ class DefaultVocabularyTransformer:
 
         self._vocabulary_generated = True
 
+        for word, occurence in word_to_occurrence_full.items():
+            if occurence!=0:
+                word_to_id[word]=new_word_id()
+                word_to_occurrence[word]=occurence
+
         return word_to_id, word_to_occurrence
 
 
 class DefaultPreprocessor:
     def __init__(self, min_word_occurrence=5, remove_unknown_words=False):
         self.min_word_occurrence = min_word_occurrence
-        self.remove_unknown_words =remove_unknown_words
+        self.remove_unknown_words = remove_unknown_words
 
     def register_vocabulary(self, vocabulary):
         self.vocabulary = vocabulary
         self.tr = TextRegularizer(vocabulary)
 
-    # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
-    def first_pass_vocab(self, word,occurrence):
-        return (occurrence >= self.min_word_occurrence), self.tr.regularize_word_vocab(word) # Note we should actually accumulate all of the regularized words
+    # TODO: Filter some of the very short and relatively rare words here < 5-10 occurrences for length 3, <15-30 for length 2
+    def first_pass_vocab(self, word, word_to_occurrence):
+        regularized, word_list=self.tr.regularize_word_vocab(word, word_to_occurrence)
+        if regularized:
+            for new_word in word_list:
+                word_to_occurrence[new_word]+=word_to_occurrence[word]
 
-    # # FIXME: Do we actually need a second pass? The hashtags normally do not add any further words...
-    # def second_pass_vocab(self, word, occurrence, word_to_occurrence):
-    #     return (occurrence >= self.min_word_occurence), [new_word for new_word in filter(lambda w: w not in self.vocabulary.word_to_id,
-    #                                                   self.tr.regularize_word_vocab(word, word_to_occurrence))]
+            word_to_occurrence[word]=0
+
+    def remove_less_frequent_word(self, word, word_to_occurrence):
+        if word_to_occurrence[word]<self.min_word_occurrence:
+            word_to_occurrence[word]=0
 
     # TODO: remove max_tweet_length modificaiton
-    def preprocess_tweet(self, tweet):
+    def preprocess_tweet(self, tweet, word_to_occurrence):
         token_seq = self.lexical_preprocessing_tweet(tweet)
-        token_seq = self.stemming_filter_preprocessing_tweet(token_seq)
+        token_seq = self.stemming_filter_preprocessing_tweet(token_seq, word_to_occurrence)
         token_seq = self.filter_unknown_words(token_seq)
-        return token_seq
 
+        return token_seq
 
     ### Several preprocessing steps
     def lexical_preprocessing_tweet(self, tweet):
@@ -169,17 +179,19 @@ class DefaultPreprocessor:
         return words
 
 
-    def stemming_filter_preprocessing_tweet(self, token_seq):
+    def stemming_filter_preprocessing_tweet(self, token_seq, word_to_occurrence):
         """Stemming/vocabulary filtering preprocessing of tokenized tweet"""
         # Token regularization
         regularized_words = []
         for word in token_seq:
             new_word_list = self.tr.regularize_word(word)
             for new_word in new_word_list:
-                regularized_words.append(new_word)
+                if new_word in self.vocabulary.word_to_id:
+                    regularized_words.append(new_word)
+                else:
+                    regularized_words.append(self.tr.tag_word(new_word))
 
-        # Replacing tokens by vocabulary terms or '<unk>' for unknown terms
-        return [ (word if word in self.vocabulary.word_to_id else '<unk>')  for word in regularized_words ]
+        return regularized_words
 
     def filter_unknown_words(self, token_seq):
         # TODO: remove config dependency

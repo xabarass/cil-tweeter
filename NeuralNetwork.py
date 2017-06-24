@@ -86,7 +86,6 @@ class Network:
               (vocabulary.word_count, word_embeddings_opt_param["dim"], preprocessed_dataset.max_tweet_length))
 
         model.add(embedding_layer)
-        model.add(Dropout(0.1))
         model.add(LSTM(200))
         model.add(Dropout(0.5))
         model.add(Dense(1, activation='sigmoid'))

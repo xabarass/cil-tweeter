@@ -47,7 +47,7 @@ else:
 
 # Vocabulary generation
 preprocessor_opt = { "min_word_occurrence":4,
-                     "remove_unknown_words": True}
+                     "remove_unknown_words": False}
 
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
