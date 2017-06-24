@@ -10,29 +10,47 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 print("Starting...")
 
+print("Loading tweets...")
 data_set = TwitterDataSet(positive_tweets=config.positive_tweets,
                           negative_tweets=config.negative_tweets,
                           test_data=config.test_data,
                           vocab_path=config.vocab_path,
                           test_vocab_path=config.test_vocab_path)
 
-preprocessor = DefaultPreprocessor(min_word_occurrence=4,
-                                   remove_unknown_words=config.remove_unknown_words)
+print("Creating vocabulary...")
+preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
 vocabulary_transformer = DefaultVocabularyTransformer(preprocessor)
 
 vocabulary = data_set.create_vocabulary(vocabulary_transformer)
 
+print("Preprocessing data set...")
 preprocessed_dataset = data_set.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)
 
 timestamp = str(int(time.time()))
 result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )
 result_epoch_file = ('-e{}_' + timestamp + '.').join( config.result_file.split('.') )
 
-trainModel=Network(config.word_embedding_dim)
+print("Create model...")
+model = Network.create_model(
+                      preprocessed_dataset=preprocessed_dataset,
+                      vocabulary=vocabulary,
+                      word_embeddings_opt=config.word_embeddings_opt)
 
-trainModel.train(data_set,
-                 config.generate_word_embeddings, config.embedding_corpus_name,
-                 result_epoch_file=result_epoch_file,
-                 misclassified_samples_file=config.misclassified_samples_file)
+
+print("Train model...")
+Network.train(model=model,
+              preprocessed_dataset=preprocessed_dataset,
+              training_opt=config.training_opt,
+              model_save_path=config.model_save_path,
+              result_epoch_file=result_epoch_file)
+
+print("Output misclassified samples...")
+Network.output_misclassified_samples(model=model,
+                      preprocessed_dataset=preprocessed_dataset, vocabulary=vocabulary,
+                      misclassified_samples_file=config.misclassified_samples_file)
+
+print("Output predictions...")
 print("\tWriting to: {}".format(result_file))
-trainModel.predict(data_set, result_file)
+Network.predict(model=model,
+                preprocessed_dataset=preprocessed_dataset,
+                prediction_file=result_file)
