@@ -2,29 +2,31 @@ import datetime
 import time
 import logging
 
-from NeuralNetwork import Network
 import config
-from TwitterDataset import TwitterDataSet, DefaultVocabularyTransformer, DefaultPreprocessor
+
+from NeuralNetwork import Network
+from TwitterDataset import TwitterDataSet
+from Vocabulary import Vocabulary, DefaultVocabularyTransformer, DefaultPreprocessor
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 print("Starting...")
 
 print("Loading tweets...")
-data_set = TwitterDataSet(positive_tweets=config.positive_tweets,
-                          negative_tweets=config.negative_tweets,
-                          test_data=config.test_data,
-                          vocab_path=config.vocab_path,
-                          test_vocab_path=config.test_vocab_path)
+twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
+                                 negative_tweets=config.negative_tweets,
+                                 test_data=config.test_data)
 
 print("Creating vocabulary...")
 preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
 vocabulary_transformer = DefaultVocabularyTransformer(preprocessor)
 
-vocabulary = data_set.create_vocabulary(vocabulary_transformer)
+vocabulary = Vocabulary(vocab_transformer=vocabulary_transformer,
+                        vocab_path=config.vocab_path,
+                        test_vocab_path=config.test_vocab_path)
 
 print("Preprocessing data set...")
-preprocessed_dataset = data_set.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)
+preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)
 
 timestamp = str(int(time.time()))
 result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )

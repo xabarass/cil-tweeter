@@ -1,5 +1,4 @@
 import numpy as np
-from keras.datasets import imdb
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM, Convolution1D, Flatten, Dropout, Activation, Input
@@ -7,17 +6,19 @@ from keras.layers.embeddings import Embedding
 from keras.layers.pooling import MaxPooling1D
 from keras.preprocessing import sequence
 from keras.layers.merge import Concatenate
-from keras.models import model_from_json
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.callbacks import Callback
-from gensim.models import Word2Vec
-from pathlib import Path
 import os
+from keras.callbacks import Callback
+
 import config
 
+# import our own modules
+from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings
+from KerasUtils import save_model
 
 
+# Callbacks for logging during training
 class ModelEvaluater(Callback):
     def __init__(self, model, preprocessed_dataset, x_val, y_val):
         super(Callback, self).__init__()
@@ -39,68 +40,21 @@ class ModelPredicter(Callback):
         self.result_epoch_file = result_epoch_file
 
     def on_epoch_end(self, epoch, logs=None):
-        if not config.test_run:
-            print("Generating prediction file for epoch %d at %s..." % (epoch, self.result_epoch_file.format(epoch)))
-            save_model(self.model, self.model_save_path + "-e{}".format(epoch))
+        print("Generating prediction file for epoch %d at %s..." % (epoch, self.result_epoch_file.format(epoch)))
+        save_model(self.model, self.model_save_path + "-e{}".format(epoch))
 
-            if self.result_epoch_file is not None:
-                Network.predict(self.model, self.preprocessed_dataset,
-                                self.result_epoch_file.format(epoch))
-
-
-# Word embeddings
-class Word2VecEmbeddings:
-    """Create or load word embeddings"""
-    def __init__(self,
-                 vocabulary, preprocessed_dataset,
-                 word_embedding_dimensions, embedding_corpus_name):
-        print("Generating word embeddings")
-        word_embedding_model = None
-
-        if embedding_corpus_name:
-            pretrained_file = Path(embedding_corpus_name)
-            if pretrained_file.is_file():
-                word_embedding_model = Word2Vec.load(embedding_corpus_name)
-                print("Word embeddings loaded!")
-
-        if not word_embedding_model:
-            word_embedding_model = Word2Vec(preprocessed_dataset.all_tokenized_tweets(),  # preprocessed_dataset.all_preprocessed_tweets()
-                                            size=word_embedding_dimensions,
-                                            window=7,
-                                            min_count=vocabulary.preprocessor.min_word_occurrence,
-                                            workers=8,
-                                            sg=1,
-                                            iter=10)
-
-            print("Word embeddings generated!")
-
-        if embedding_corpus_name:
-            word_embedding_model.save(embedding_corpus_name)
-
-        self.embedding_matrix = np.zeros((vocabulary.word_count, word_embedding_dimensions))
-        for word, id in vocabulary.word_to_id.items():
-            if word in word_embedding_model.wv.vocab:
-                embedding_vector = word_embedding_model[word]
-                self.embedding_matrix[id] = embedding_vector
+        if self.result_epoch_file is not None:
+            Network.predict(self.model, self.preprocessed_dataset,
+                            self.result_epoch_file.format(epoch))
 
 
-# TODO: Implement this
-class GloVeEmbeddings:
-    pass
 
-
-def save_model(model,model_save_path):
-    model_json = model.to_json()
-    with open(model_save_path + ".json", "w") as json_file:
-        json_file.write(model_json)
-    model.save_weights(model_save_path + ".h5")
-    print("Saved model to disk at %s.(json,h5)" % model_save_path)
-
-
+# TODO: Make this class a single module as it maintains no internal state (apart from a list of word_embedding_models)
 class Network:
     word_embedding_models =  { 'word2vec' : Word2VecEmbeddings,
                                'glove'    : GloVeEmbeddings}
 
+    # TODO: Move this outside of this class to make this only dealing with Keras models (as opposed to Scikit Learn modles)
     @classmethod
     def create_model(cls,
                      preprocessed_dataset,
@@ -136,10 +90,11 @@ class Network:
         model.add(Dense(1, activation='sigmoid'))
 
         model.compile(loss='binary_crossentropy',
-                           optimizer='adam',
-                           metrics=['accuracy'])
+                      optimizer='adam',
+                      metrics=['accuracy'])
 
         print("Compiled model...")
+
         print(model.summary())
 
         return model
@@ -161,9 +116,13 @@ class Network:
         x_val   = sequence.pad_sequences(x_val,   maxlen=preprocessed_dataset.max_tweet_length)
 
         evaluater=ModelEvaluater(model, preprocessed_dataset, x_val, y_val)
-        predicter=ModelPredicter(model, preprocessed_dataset, model_save_path, result_epoch_file)
+        callbacks=[evaluater]
 
-        model.fit(x_train, y_train, callbacks=[evaluater, predicter], **training_opt_param)
+        if not config.test_run: # TODO: make callbacks accessible from config
+            predicter=ModelPredicter(model, preprocessed_dataset, model_save_path, result_epoch_file)
+            callbacks.append(predicter)
+
+        model.fit(x_train, y_train, callbacks=callbacks, **training_opt_param)
 
         if model_save_path is not None:
             save_model(model, model_save_path)
@@ -195,19 +154,6 @@ class Network:
         (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split()
         evaluate_misclassified_samples(x_val,  y_val, x_orig_val, "validation")
         evaluate_misclassified_samples(x_train, y_train, x_orig_train,"training")
-
-    @classmethod
-    def load_model(cls, model_json_file, model_h5_file):
-        print("Loading model...")
-        with open(model_json_file, 'r') as structure_file:
-            loaded_model_json = structure_file.read()
-            model = model_from_json(loaded_model_json)
-
-        model.load_weights(model_h5_file)
-
-        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-        print("Loaded model from disk!")
 
     @classmethod
     def predict(cls, model, preprocessed_dataset, prediction_file):
