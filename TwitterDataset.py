@@ -7,8 +7,15 @@ import TextRegularizer as tr
 
 import config
 
+
+
+# TODO: Separate classes for:
+#       The simple vocabulary and all associated data structures a separate/nested object as well as current
+#       train/test/orig_train dataset
+
 class TwitterDataSet:
-    def __init__(self, should_train, positive_tweets=None,
+    def __init__(self, should_train,
+                 positive_tweets=None,
                  negative_tweets=None,
                  test_data=None,
                  vocab_path=None,
@@ -16,39 +23,18 @@ class TwitterDataSet:
                  remove_unknown_words=False,
                  min_word_occ=5):
 
-        print("Initializing...")
+        print("Loading TwitterDataSet...")
         # File paths
         self.pos_tw_path=positive_tweets
         self.neg_tw_path=negative_tweets
+        self.test_data_path = test_data
         self.vocab_path=vocab_path
         self.test_vocab_path=test_vocab_path
-        self.test_data_path = test_data
-        self.remove_unknown_words=remove_unknown_words
         # Train data
-        self.train_tweets=[]
         self.train_sentiments=[]
         self.original_train_tweets = []
-        # Shuffled train data
-        self.shuffled_train_tweets=[]
-        self.shuffled_train_sentiments=[]
-        self.shuffled_original_train_tweets = []
         # Test data
-        self.test_tweets=[]
         self.original_test_tweets = []
-        # Utils data structures
-        self.max_tweet_length=0
-        self.word_count=1
-        self.word_to_id={}
-        self.min_word_occurence=min_word_occ
-        # Full tweets
-        self.full_tweets=[]
-        self.full_train_tweets=[]
-        self.full_test_tweets=[]
-
-        self.unused_words=[]
-
-        if self.remove_unknown_words:
-            print("Removing unused words from tweets!")
 
         if not os.path.isfile(self.pos_tw_path):
             raise Exception("Not a valid file: %s"%self.pos_tw_path)
@@ -59,136 +45,256 @@ class TwitterDataSet:
         if not os.path.isfile(self.vocab_path):
             raise Exception("Not a valid file: %s"%self.vocab_path)
 
-        self._load_dictionary()
-        self._load_data()
 
-    def _load_dictionary(self):
-        print("Loading dictionary..")
-        test_vocab = {}
-        with open(self.test_vocab_path,'r') as test_vocab_file:
-            for line in test_vocab_file:
-                tokens = line.split(' ')
-                occurrence = tokens[-2]
-                word = tokens[-1]
-                test_vocab[word] = occurrence
+        def add_test_tweet(tweet):
+            self.original_test_tweets.append(tweet)
 
-        with open(self.vocab_path, 'r') as vocab:
+        def add_train_tweet(tweet, sentiment):
+            self.train_sentiments.append(sentiment)
+            self.original_train_tweets.append(tweet)
+
+        print("Loading tweets...")
+        with open(self.pos_tw_path, 'r') as pos:
+            for line in pos:
+                add_train_tweet(line, 1)
+        with open(self.neg_tw_path, 'r') as neg:
+            for line in neg:
+                add_train_tweet(line, 0)
+        with open(self.test_data_path,'r') as tst:
+            for line in tst:
+                add_test_tweet(line)
+
+    def create_vocabulary(self, preprocessor=DefaultVocabularyTransformer(DefaultPreprocessor())):
+        return Vocabulary(self.vocab_path,
+                          self.test_vocab_path,
+                          preprocessor)
+
+    def create_preprocessed_dataset(self, vocabulary):
+        return PreprocessedDataset(self, vocabulary)
+
+
+class PreprocessedDataset:
+    def __init__(self, twitter_dataset, vocabulary):
+        self.vocabulary = vocabulary
+
+        if not config.test_run:
+            self.shuffled_original_train_tweets = twitter_dataset.original_train_tweets[:]
+            self.shuffled_train_sentiments = twitter_dataset.train_sentiments[:]
+        else:
+            combined_training_dataset = list(zip(twitter_dataset.original_train_tweets, self.train_sentiments))
+            random.shuffle(combined_training_dataset)
+            combined_training_dataset = combined_training_dataset[:int(config.test_run_data_ratio*len(combined_training_dataset))]
+            self.shuffled_original_train_tweets, self.shuffled_train_sentiments = zip(*combined_training_dataset)
+
+        self.shuffled_train_tweets = [ vocabulary.preprocess_and_map_tweet_to_id_seq(tweet)
+                                       for tweet in self.shuffled_original_train_tweets ]
+        self.shuffled_preprocessed_train_tweets = [ vocabulary.map_id_seq_to_tweet(id_seq)
+                                                    for id_seq in self.shuffled_train_tweets ]
+
+        self.original_test_tweets = twitter_dataset.original_test_tweets
+        self.test_tweets = [ vocabulary.preprocess_and_map_tweet_to_id_seq(tweet)
+                             for tweet in self.original_test_tweets ]
+        self.preprocessed_test_tweets = [ vocabulary.map_id_seq_to_tweet(id_seq)
+                                          for id_seq in self.test_tweets ]
+
+        self.all_preprocessed_tweets_randomized = self.shuffled_preprocessed_train_tweets + self.preprocessed_test_tweets
+
+    def all_preprocessed_tweets(self):
+        random.shuffle(self.all_preprocessed_tweets_randomized)
+        return self.all_preprocessed_tweets_randomized
+
+    def shuffle_and_split(self):
+        """Create training data set"""
+        print("Shuffling data...")
+
+        combined_training_dataset = list(zip(self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments))
+        random.shuffle(combined_training_dataset)
+        self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments = zip(*combined_training_dataset)
+
+        # TODO: Remove implicit config.validation_split_ratio dependency
+        nb_validation_samples = int(config.validation_split_ratio * len(self.shuffled_train_tweets))
+
+        x_train = self.shuffled_train_tweets[:nb_validation_samples]
+        x_orig_train = self.shuffled_original_train_tweets[:nb_validation_samples]
+        y_train = self.shuffled_train_sentiments[:nb_validation_samples]
+        x_val   = self.shuffled_train_tweets[nb_validation_samples:]
+        x_orig_val   = self.shuffled_original_train_tweets[nb_validation_samples:]
+        y_val = self.shuffled_train_sentiments[nb_validation_samples:]
+
+        return (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val)
+
+
+class Vocabulary:
+    def __init__(self, vocab_path, test_vocab_path=None, vocab_transformer=DefaultVocabularyTransformer(DefaultPreprocessor())):
+        """Load and compute vocabulary from output of twitter-datasets/build_vocab.sh"""
+        if vocab_transformer is None:
+             raise Exception("Not a valid vocabulary transformer supplied: %s" % repr(vocab_transformer))
+
+        # Refer to vocab to enable online tweet preprocessing from within the preprocessor
+        self.preprocessor = vocab_transformer.preprocessor
+        vocab_transformer.preprocessor.register_vocabulary(self)
+
+        print("Loading vocabulary..")
+
+        # Load test vocabulary
+        if test_vocab_path is not None:
+            test_vocab = {}
+            with open(test_vocab_path, 'r') as test_vocab_file:
+                for line in test_vocab_file:
+                    tokens = line.split(' ')
+                    occurrence = int(tokens[-2])
+                    word = tokens[-1]
+                    assert word not in test_vocab
+                    test_vocab[word] = occurrence
+
+        # Load merged train and test vocabulary
+        word_to_occurrence={}
+        with open(vocab_path, 'r') as vocab:
             for line in vocab:
                 tokens = line.split(' ')
-                occurence = tokens[-2]
-                word = tokens[-1]
-                if ((int(occurence) >= self.min_word_occurence) ): # or ((int(occurrence) == self.min_word_occurence) and (word in test_vocab))) :
-                    word = word.rstrip()
-                    if word not in self.word_to_id:
-                        self.word_to_id[word] = self.word_count
-                        self.word_count= self.word_count+ 1
+                occurrence = int(tokens[-2])
+                word = tokens[-1].rstrip()
+                if word not in word_to_occurrence:
+                    word_to_occurrence[word] = occurrence
                 else:
-                    self.unused_words.append(word)
+                    word_to_occurrence[word] += occurrence
 
-        # Get special words and add them to vocab if needed
-        special_words=tr.get_special_words(self.word_to_id)
-        for sw in special_words:
-            if sw not in self.word_to_id:
-                print("Extending dict with special word %s" %sw)
-                self.word_to_id[sw]=self.word_count
-                self.word_count = self.word_count + 1
-
-        print("Vocabulary of model has {} words".format(len(self.word_to_id)))
+        # vocab_transformer defines vocabulary by injecting extra symbols and filtering the generated vocabulary
+        self.word_to_id, self.word_to_occurrence = vocab_transformer(word_to_occurrence)
 
         # build reverse lookup dictionary
-        self.id_to_word = {0 : '<unk>'}
         for word in self.word_to_id:
             self.id_to_word[self.word_to_id[word]] = word
 
-    # Lexical preprocessing
-    def lexical_preprocessing_tweet(self, tweet):
-        # instead of words = tweet.split(' ')[:]; words[-1] = words[-1].rstrip()
-        words = tweet.rstrip().split(' ')
+        print("Vocabulary of model has {} words".format(len(self.word_to_id)))
 
-        resulting_words=[]
-        for word in words:
-            new_word_list=tr.regularize_word(word)
-            for new_word in new_word_list:
-                if new_word in self.word_to_id:
-                    resulting_words.append(new_word)
-                else:
-                    resulting_words.append(tr.tag_word(new_word))
+        self.max_tweet_length = 0
 
-        return resulting_words
+    def preprocess_and_map_tweet_to_id_seq(self, tweet):
+        """Preprocess tweet with lexical/stemming/filtering phase and replace every token by vocabulary integer id"""
+        assert isinstance(tweet,str)
+        token_seq = self.preprocessor.preprocess_tweet(tweet)
+        return self.map_to_id_seq_tweet(token_seq)
 
-    # Preprocessing subsequent to lexer phase
-    def filter_tweet(self, token_seq):
-        filtered_token_seq = []
-        for word in token_seq:
-            if word in self.word_to_id:
-                filtered_token_seq.append(word)
-            else:
-                filtered_token_seq.append('<unk>')
-        return filtered_token_seq
+    def map_tweet_to_id_seq(self, tweet_token_seq):
+        """Replace every token by vocabulary integer id"""
+        assert isinstance(tweet_token_seq, list)
+        return [self.word_to_id[word] for word in tweet_token_seq]
 
-    # Map token sequence to id sequence
-    def map_tweet_to_id_seq(self, token_seq, remove_unknown_words):
-        word_id_seq = []
-        for word in token_seq:
-            if word != '<unk>':
-                word_id_seq.append(self.word_to_id[word])
-            elif not remove_unknown_words:
-                word_id_seq.append(0) #Unknown word is 0
-        return word_id_seq
+    def map_id_seq_to_tweet(self, tweet_id_seq):
+        """Replace every vocabulary integer id by token"""
+        assert isinstance(tweet_id_seq, list)
+        return [self.id_to_word[id] for id in tweet_id_seq]
 
-    def _lexical_preprocess_and_map_to_id_tweet(self, tweet):
+
+class DefaultVocabularyTransformer:
+    """Function object that creates word_to_id vocabulary dictionary from word_to_occurrence statistics of corpus"""
+    def __init__(self, preprocess_filter=default_preprocess_filter):
+        self.preprocess_filter = preprocess_filter
+        self._vocabulary_generated = False
+
+    def __call__(self, word_to_occurrence_full):
+        assert not self._vocabulary_generated
+
+        word_to_id = {}
+        new_word_id = lambda : len(word_to_id)
+        word_to_occurrence = {}
+        word_to_id['<unk>'] = new_word_id()
+
+        # Get special symbols from regularizer and add them to the vocabulary
+        for sw in tr.get_special_words():
+            # print("Adding special symbol to vocabulary %s" % sw)
+            word_to_id[sw] = new_word_id()
+
+        # Two passes of vocabulary creation
+        # First create all standard words, secondly add non-standard specially treated words
+        #word_processed = set()
+        for word in word_to_occurrence_full:
+            word_in_vocab, preprocessed_words = \
+                self.preprocess_filter.first_pass_vocab(word, word_to_occurrence_full[word])
+            assert isinstance(word_in_vocab,bool)
+            assert isinstance(preprocessed_words,list)
+            if word_in_vocab:
+                #word_processed.add(word)
+                for preprocessed_word in preprocessed_words:
+                    assert isinstance(preprocessed_word, str)
+                    if preprocessed_word not in word_to_id:
+                        word_to_id[preprocessed_word] = new_word_id()
+                        word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
+                    else:
+                        word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
+                #else:
+            #    unused_words_first_pass.append(word)
+
+        # for word in word_to_occurrence_full:
+        #     if word not in word_processed:
+        #         if word not in word_to_id:
+        #             word_in_vocab, preprocessed_words = \
+        #                 self.preprocess_filter.second_pass_vocab(word, word_to_occurrence_full[word], word_to_occurrence)
+        #             assert isinstance(word_in_vocab,bool)
+        #             assert isinstance(preprocessed_words,list)
+        #             if word_in_vocab:
+        #                 for preprocessed_word in preprocessed_words:
+        #                     assert isinstance(preprocessed_word,str)
+        #                     if preprocessed_word not in word_to_id:
+        #                         word_to_id[preprocessed_word] = new_word_id()
+        #                         word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
+        #                     else:
+        #                         word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
+        #             #else:
+        #             #    unused_words_second_pass.append(word)
+
+        self._vocabulary_generated = True
+
+        return word_to_id, word_to_occurrence
+
+
+class DefaultPreprocessor:
+    def __init__(self):
+        pass
+
+    def register_vocabulary(self, vocabulary):
+        self.vocabulary = vocabulary
+        self.tr = TextRegularizer(vocabulary)
+
+    # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
+    def first_pass_vocab(self, word,occurrence):
+        return (occurrence >= self.min_word_occurence), self.tr.regularize_word_vocab(word) # Note we should actually accumulate all of the regularized words
+
+    # # Question: Do we actually need a second pass? The hashtags normally do not add any further words...
+    # def second_pass_vocab(self, word, occurrence, word_to_occurrence):
+    #     return (occurrence >= self.min_word_occurence), [new_word for new_word in filter(lambda w: w not in self.vocabulary.word_to_id,
+    #                                                   self.tr.regularize_word_vocab(word, word_to_occurrence))]
+
+    # TODO: remove max_tweet_length modificaiton
+    def preprocess_tweet(self, tweet):
         token_seq = self.lexical_preprocessing_tweet(tweet)
-        if len(token_seq) > self.max_tweet_length:
-            self.max_tweet_length = len(token_seq)
-        token_seq = self.filter_tweet(token_seq)
-        return self.map_tweet_to_id_seq(token_seq, self.remove_unknown_words)
+        token_seq = self.stemming_filter_preprocessing_tweet(token_seq)
+        token_seq = self.filter_unknown_words(token_seq)
+        if len(token_seq) > self.vocabulary.max_tweet_length:
+            self.vocabulary.max_tweet_length = len(token_seq)
+        return token_seq
 
-    def _add_test_tweet(self, tweet):
-        self.test_tweets.append(self._lexical_preprocess_and_map_to_id_tweet(tweet))
-        self.full_test_tweets.append(self.lexical_preprocessing_tweet(tweet))
-        self.original_test_tweets.append(tweet)
 
-    def _add_train_tweet(self, tweet, sentiment):
-        self.train_tweets.append(self._lexical_preprocess_and_map_to_id_tweet(tweet))
-        self.train_sentiments.append(sentiment)
-        self.full_train_tweets.append(self.lexical_preprocessing_tweet(tweet))
-        self.original_train_tweets.append(tweet)
+    ### Several preprocessing steps
+    def lexical_preprocessing_tweet(self, tweet):
+        """Lexical Tweet preprocessing: tokenization"""
+        words = tweet.rstrip().split(' ')
+        return words
 
-    # TODO: Need to store both lexically preprocessed and not original tweets to display misclassified samples
-    def _load_data(self):
-        print("Loading data...")
-        with open(self.pos_tw_path, 'r') as pos, open(self.neg_tw_path, 'r') as neg, open(self.test_data_path,
-                                                                                                  'r') as tst:
-            for line in pos:
-                self._add_train_tweet(line, 1)
-            for line in neg:
-                self._add_train_tweet(line, 0)
-            for line in tst:
-                self._add_test_tweet(line)
 
-        self.full_tweets = self.full_train_tweets + self.full_test_tweets
+    def stemming_filter_preprocessing_tweet(self, token_seq):
+        """Stemming/vocabulary filtering preprocessing of tokenized tweet"""
+        # Token regularization
+        regularized_words = []
+        for word in token_seq:
+            new_word_list = tr.regularize_word(word)
+            for new_word in new_word_list:
+                regularized_words.append(new_word)
 
-    def shuffle_and_split(self, split_ratio):
-        print("Shuffling data...")
+        # Replacing tokens by vocabulary terms or '<unk>' for unknown terms
+        return [ (word if word in self.word_to_id else '<unk>')  for word in regularized_words ]
 
-        if len(self.shuffled_train_tweets) == 0 and len(self.shuffled_train_sentiments) == 0 and len(self.shuffled_original_train_tweets) == 0:
-            combined = list(zip(self.train_tweets, self.train_sentiments, self.original_train_tweets))
-            random.shuffle(combined)
-            if config.test_run:
-                combined = combined[:int(config.test_run_data_ratio*len(self.train_tweets))]
-        else:
-            combined = list(zip(self.shuffled_train_tweets, self.shuffled_train_sentiments, self.shuffled_original_train_tweets))
-            random.shuffle(combined)
-
-        self.shuffled_train_tweets[:], self.shuffled_train_sentiments[:], self.shuffled_original_train_tweets[:] = zip(*combined)
-
-        nb_validation_samples = int(split_ratio * len(self.shuffled_train_tweets))
-
-        x_train = self.shuffled_train_tweets[:nb_validation_samples]
-        y_train = self.shuffled_train_sentiments[:nb_validation_samples]
-        x_val = self.shuffled_train_tweets[nb_validation_samples:]
-        y_val = self.shuffled_train_sentiments[nb_validation_samples:]
-        x_orig_train = self.shuffled_original_train_tweets[:nb_validation_samples]
-        x_orig_val   = self.shuffled_original_train_tweets[nb_validation_samples:]
-
-        return (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val)
+    def filter_unknown_words(self, token_seq):
+        # TODO: remove config dependency
+        return [word for word in filter(lambda w: w != '<unk>' or not config.remove_unknown_words, token_seq)]
