@@ -19,7 +19,8 @@ twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
 
 print("Creating vocabulary...")
 preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
-vocabulary_transformer = DefaultVocabularyTransformer(preprocessor)
+
+vocabulary_transformer = DefaultVocabularyTransformer(preprocessor, **config.vocabulary_transformer_opt)
 
 vocabulary = Vocabulary(vocab_transformer=vocabulary_transformer,
                         vocab_path=config.vocab_path,

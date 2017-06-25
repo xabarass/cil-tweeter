@@ -18,10 +18,11 @@ class Word2VecEmbeddings:
                 print("Word embeddings loaded!")
 
         if not word_embedding_model:
+            min_word_occurrence = vocabulary.min_word_occurrence if hasattr(vocabulary, "min_word_occurrence") else 5
             word_embedding_model = Word2Vec(preprocessed_dataset.all_tokenized_tweets(),  # preprocessed_dataset.all_preprocessed_tweets()
                                             size=word_embedding_dimensions,
                                             window=7,
-                                            min_count=vocabulary.preprocessor.min_word_occurrence,
+                                            min_count=min_word_occurrence,
                                             workers=8,
                                             sg=1,
                                             iter=10)

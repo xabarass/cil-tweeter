@@ -13,9 +13,18 @@ class Vocabulary:
         if not os.path.isfile(vocab_path):
             raise Exception("Not a valid file: %s" % vocab_path)
 
+        # Initialize vocabulary state
+        self.word_to_id = {}
+        self.word_to_occurrence = {}
+
         # Refer to vocab to enable online tweet preprocessing from within the preprocessor
         self.preprocessor = vocab_transformer.preprocessor
         vocab_transformer.preprocessor.register_vocabulary(self)
+
+        if hasattr(vocab_transformer.vocabulary_filter,"min_word_occurrence"):
+            self.min_word_occurrence = vocab_transformer.vocabulary_filter.min_word_occurrence
+        else:
+            raise
 
         print("Loading vocabulary..")
 
@@ -59,7 +68,7 @@ class Vocabulary:
     def preprocess_and_map_tweet_to_id_seq(self, tweet):
         """Preprocess tweet with lexical/stemming/filtering phase and replace every token by vocabulary integer id"""
         assert isinstance(tweet,str)
-        token_seq = self.preprocessor.preprocess_tweet(tweet, self.word_to_occurrence)
+        token_seq = self.preprocessor.preprocess_tweet(tweet)
         return self.map_tweet_to_id_seq(token_seq)
 
     def map_tweet_to_id_seq(self, tweet_token_seq):
@@ -75,101 +84,125 @@ class Vocabulary:
 
 class DefaultVocabularyTransformer:
     """Function object that creates word_to_id vocabulary dictionary from word_to_occurrence statistics of corpus"""
-    def __init__(self, preprocessor):
+    def __init__(self, preprocessor, vocabulary_filter):
         self.preprocessor = preprocessor
+        self.vocabulary_filter = vocabulary_filter
         self._vocabulary_generated = False
+
 
     def __call__(self, word_to_occurrence_full):
         assert not self._vocabulary_generated
 
+        self.vocab_preprocessor = self.preprocessor.clone_shallow() # create a deep copy of the preprocessor to be used for vocabulary generation
+
+        class VocabularyProxy:
+            """Creates a filtered copy of currently preprocessed words to serve as a temporary vocabulary"""
+            def __init__(self, unfiltered_word_to_occurrence, vocabulary_filter):
+                self.word_to_occurrence = {}
+                for word, occurrence in unfiltered_word_to_occurrence.items():
+                    if vocabulary_filter(word,occurrence):
+                        self.word_to_occurrence[word] = unfiltered_word_to_occurrence[word]
+
+        # Two passes of vocabulary creation
+        # First collect words by frequency, in a second phase create additional words
+        word_to_preprocessed_words = {}
+        preprocessed_word_to_occurrence = {}
+        self.vocab_preprocessor.register_vocabulary(
+            VocabularyProxy(preprocessed_word_to_occurrence, self.vocabulary_filter) )
+
+        for word in word_to_occurrence_full:
+            preprocessed_words = self.vocab_preprocessor.initial_pass_vocab(word) # preprocessor returns a list of words that word parameter gets preprocessed into
+            assert isinstance(preprocessed_words, list)
+            word_to_preprocessed_words[word] = preprocessed_words
+
+        for word, preprocessed_words in word_to_preprocessed_words.items():
+            for preprocessed_word in preprocessed_words:
+                if preprocessed_word not in preprocessed_word_to_occurrence:
+                    preprocessed_word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
+                else:
+                    preprocessed_word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
+
+        self.vocab_preprocessor.register_vocabulary(
+            VocabularyProxy(preprocessed_word_to_occurrence, self.vocabulary_filter) )
+
+        extra_pass_count = 0
+        while True:
+            replaced_preprocessed_words = {}
+            print("\t[DefaultVocabularyTransformer]\t - %d-th extra pass" % (extra_pass_count+1))
+            for word in word_to_occurrence_full:
+                preprocessed_words = self.vocab_preprocessor.extra_pass_vocab(word) # preprocessor returns a list of words that word parameter gets preprocessed into
+                assert isinstance(preprocessed_words, list)
+                if preprocessed_words != word_to_preprocessed_words[word]:
+                    print("\t '{}':\n\t\t[{}]\t --> \t[{}]".format(word, ', '.join(word_to_preprocessed_words[word]),
+                                                                                ', '.join(preprocessed_words)))
+                    replaced_preprocessed_words[word] = word_to_preprocessed_words[word]
+                    word_to_preprocessed_words[word] = preprocessed_words
+
+            if len(replaced_preprocessed_words) == 0:
+                break
+
+            for word, preprocessed_words in replaced_preprocessed_words.items():
+                for preprocessed_word in preprocessed_words:
+                    preprocessed_word_to_occurrence[preprocessed_word] -= word_to_occurrence_full[word]
+                for preprocessed_word in word_to_preprocessed_words[word]:
+                    if preprocessed_word not in preprocessed_word_to_occurrence:
+                        preprocessed_word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
+                    else:
+                        preprocessed_word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
+
+            self.vocab_preprocessor.register_vocabulary(
+                VocabularyProxy(preprocessed_word_to_occurrence, self.vocabulary_filter))
+
+            extra_pass_count += 1
+
+        # Create final vocabulary by filtering stationary set of preprocessed words by occurrence criterion
+        word_to_occurrence = {}
         word_to_id = {}
         new_word_id = lambda : len(word_to_id)
-        word_to_occurrence = {}
+
+        word_to_occurrence['<unk>'] = 0
+        word_to_id['<unk>'] = new_word_id()
 
         # Get special symbols from regularizer and add them to the vocabulary
         for sw in TextRegularizer.get_special_words():
             # print("Adding special symbol to vocabulary %s" % sw)
-            word_to_id[sw] = new_word_id()
             word_to_occurrence[sw] = 0
+            word_to_id[sw] = new_word_id()
 
-        # Two passes of vocabulary creation
-        # First create all standard words, secondly add non-standard specially treated words
-        # word_processed = set()
-        for word in word_to_occurrence_full:
-            self.preprocessor.first_pass_vocab(word, word_to_occurrence_full)
-            # assert isinstance(word_in_vocab,bool)
-            # assert isinstance(preprocessed_words,list)
-            # if word_in_vocab:
-            #     #word_processed.add(word)
-            #     for preprocessed_word in preprocessed_words:
-            #         assert isinstance(preprocessed_word, str)
-            #         if preprocessed_word not in word_to_id:
-            #             word_to_id[preprocessed_word] = new_word_id()
-            #             word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
-            #         else:
-            #             word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
-            #else:
-            #    unused_words_first_pass.append(word)
-
-        for word in word_to_occurrence_full:
-            self.preprocessor.remove_less_frequent_word(word, word_to_occurrence_full)
-
-        # for word in word_to_occurrence_full:
-        #     if word not in word_processed:
-        #         if word not in word_to_id:
-        #             word_in_vocab, preprocessed_words = \
-        #                 self.preprocessor.second_pass_vocab(word, word_to_occurrence_full[word], word_to_occurrence)
-        #             assert isinstance(word_in_vocab,bool)
-        #             assert isinstance(preprocessed_words,list)
-        #             if word_in_vocab:
-        #                 for preprocessed_word in preprocessed_words:
-        #                     assert isinstance(preprocessed_word,str)
-        #                     if preprocessed_word not in word_to_id:
-        #                         word_to_id[preprocessed_word] = new_word_id()
-        #                         word_to_occurrence[preprocessed_word] = word_to_occurrence_full[word]
-        #                     else:
-        #                         word_to_occurrence[preprocessed_word] += word_to_occurrence_full[word]
-        #             #else:
-        #             #    unused_words_second_pass.append(word)
+        for word, occurrence in preprocessed_word_to_occurrence.items():
+            if word not in word_to_id:
+                if self.vocabulary_filter(word, occurrence):
+                    word_to_id[word] = new_word_id()
+                    word_to_occurrence[word] = preprocessed_word_to_occurrence[word]
 
         self._vocabulary_generated = True
-
-        for word, occurence in word_to_occurrence_full.items():
-            if occurence!=0:
-                word_to_id[word]=new_word_id()
-                word_to_occurrence[word]=occurence
 
         return word_to_id, word_to_occurrence
 
 
 class DefaultPreprocessor:
-    def __init__(self, min_word_occurrence=5, remove_unknown_words=False):
-        self.min_word_occurrence = min_word_occurrence
+    def __init__(self, remove_unknown_words=False):
         self.remove_unknown_words = remove_unknown_words
 
     def register_vocabulary(self, vocabulary):
         self.vocabulary = vocabulary
         self.tr = TextRegularizer(vocabulary)
 
-    # TODO: Filter some of the very short and relatively rare words here < 5-10 occurrences for length 3, <15-30 for length 2
-    def first_pass_vocab(self, word, word_to_occurrence):
-        regularized, word_list=self.tr.regularize_word_vocab(word, word_to_occurrence)
-        if regularized:
-            for new_word in word_list:
-                word_to_occurrence[new_word]+=word_to_occurrence[word]
+    def clone_shallow(self):
+        preprocessor = DefaultPreprocessor(self.remove_unknown_words)
+        return preprocessor
 
-            word_to_occurrence[word]=0
+    def initial_pass_vocab(self, word):
+        return self.tr.regularize_word_static(word)
 
-    def remove_less_frequent_word(self, word, word_to_occurrence):
-        if word_to_occurrence[word]<self.min_word_occurrence:
-            word_to_occurrence[word]=0
+    def extra_pass_vocab(self, word):
+        return self.stemming_filter_preprocessing_tweet([word])
 
-    # TODO: remove max_tweet_length modificaiton
-    def preprocess_tweet(self, tweet, word_to_occurrence):
+    def preprocess_tweet(self, tweet):
         token_seq = self.lexical_preprocessing_tweet(tweet)
-        token_seq = self.stemming_filter_preprocessing_tweet(token_seq, word_to_occurrence)
-        token_seq = self.filter_unknown_words(token_seq)
-
+        token_seq = self.stemming_filter_preprocessing_tweet(token_seq)
+        token_seq = self.vocabulary_filtering_tweet(token_seq)
+        token_seq = self.filter_unknown_words_tweet(token_seq)
         return token_seq
 
     ### Several preprocessing steps
@@ -178,21 +211,20 @@ class DefaultPreprocessor:
         words = tweet.rstrip().split(' ')
         return words
 
-
-    def stemming_filter_preprocessing_tweet(self, token_seq, word_to_occurrence):
+    def stemming_filter_preprocessing_tweet(self, token_seq):
         """Stemming/vocabulary filtering preprocessing of tokenized tweet"""
         # Token regularization
         regularized_words = []
         for word in token_seq:
             new_word_list = self.tr.regularize_word(word)
             for new_word in new_word_list:
-                if new_word in self.vocabulary.word_to_id:
-                    regularized_words.append(new_word)
-                else:
-                    regularized_words.append(self.tr.tag_word(new_word))
+                regularized_words.append(new_word)
 
         return regularized_words
 
-    def filter_unknown_words(self, token_seq):
-        # TODO: remove config dependency
+    def vocabulary_filtering_tweet(self, token_seq):
+        # Replacing tokens by vocabulary terms or '<unk>' for unknown terms
+        return [(word if word in self.vocabulary.word_to_id else '<unk>') for word in token_seq]
+
+    def filter_unknown_words_tweet(self, token_seq):
         return [word for word in filter(lambda w: w != '<unk>' or not self.remove_unknown_words, token_seq)]
