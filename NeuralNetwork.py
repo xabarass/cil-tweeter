@@ -1,5 +1,5 @@
 import numpy as np
-from keras.models import Sequential
+from keras.models import Sequential, model_from_json
 from keras.layers import Dense
 from keras.layers import LSTM, Convolution1D, Flatten, Dropout, Activation, Input
 from keras.layers.embeddings import Embedding
@@ -11,6 +11,7 @@ from keras.preprocessing.sequence import pad_sequences
 import os
 from keras.callbacks import Callback
 
+from Emailer import Emailer
 import config
 
 # import our own modules
@@ -25,11 +26,17 @@ class ModelEvaluater(Callback):
         self.model=model
         self.x_val=x_val
         self.y_val=y_val
+        self.emailer=Emailer('Training network update', config.email)
 
     def on_epoch_end(self, epoch, logs=None):
         print("\nEvaluating epoch...")
         scores = self.model.evaluate(self.x_val, self.y_val, verbose=1)
         print("\n\tValidation accuracy: %.2f%%" % (scores[1] * 100))
+        try:
+            self.emailer.send_report("Epoch {} has score {}% on validation".format(epoch,scores[1]*100));
+        except Exception:
+            print("Error sending email!")
+
 
 class ModelPredicter(Callback):
     def __init__(self, model, preprocessed_dataset, model_save_path, result_epoch_file):
