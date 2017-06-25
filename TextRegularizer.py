@@ -59,38 +59,86 @@ def _convert_hashtag(word, word_to_occurrence):
         big_word=word[1:]
         match_found=False
 
-        def find_subwords(from_index, end_index):
-            if from_index==end_index:
-                return []
 
-            subwords=[]
 
-            while len(subwords)==0 and from_index<end_index-1:
-                current_subwords=[]
+        # Find optimal tokenization of big_word[from_index:end_index] of maximum size max_len
+        # Return success status, tokenization, new_max_len, score
+        def find_subwords(from_index, end_index, max_len, tolerance):
 
-                to_index=end_index
-                while not from_index==to_index:
-                    current_word=big_word[from_index:to_index]
-                    if current_word in word_to_occurrence:
-                        # print("Found word %s" %current_word)
-                        current_subwords.append(current_word)
-                        current_subwords+=find_subwords(to_index, len(big_word))
+            # Tokenization exceeds maximum length
+            if max_len < 0 or (max_len == 0 and from_index + tolerance < end_index ):
+                return False, [], 0, 0
+
+            # Base case
+            if from_index == end_index or (max_len == 0 and from_index + tolerance >= end_index):
+                return True, [], 0, 0
+
+            base_from_index = from_index
+
+            success_flag = False
+            best_tokenization=[]
+            best_score = 0
+
+            while from_index < end_index:
+
+                to_index = end_index
+
+                while from_index != to_index:
+                    if max_len == 1 and to_index + tolerance < end_index: # tokenization cannot be completed (missing big_word[to_index:end_index-1]) as tolerance is 1
                         break
-                    else:
-                        to_index=to_index-1
+                    current_token = big_word[from_index:to_index]
+                    if current_token in word_to_occurrence:
+                        # print("Found word %s" %current_token)
+                        current_token_score = word_to_occurrence[current_token]*len(current_token)
+                        child_success_flag, child_tokenization, child_len, child_score = find_subwords(to_index, end_index, max_len-1, tolerance)
+                        assert child_len < max_len
+                        if child_success_flag and \
+                                ((not success_flag) or
+                                  child_len + 1 < max_len or
+                                 (child_len + 1 == max_len and child_score + current_token_score > best_score)):
+                            best_tokenization = [current_token]
+                            best_tokenization += child_tokenization
+                            max_len = len(best_tokenization)
+                            best_score = child_score + current_token_score
+                            success_flag = True
 
-                if len(current_subwords)<len(subwords) or len(subwords)==0:
-                    subwords=current_subwords[:]
-                from_index=from_index+1
+                    to_index=to_index-1
 
-            return subwords
+                if tolerance > 0:
+                    from_index=from_index+1
+                    tolerance -= 1
+                else:
+                    break
 
-        word_list=find_subwords(0, len(big_word))
-        # print("Replacing %s with" %word)
-        # print(word_list)
-        return True, word_list
+            if not success_flag and base_from_index + tolerance >= end_index:
+                return True, [], 0, 0
+
+            return success_flag, best_tokenization, max_len, best_score
+
+        success_flag = False
+        tokenization = []
+        maximum_len = 15
+        maximum_tolerance = 5
+
+        for tol in range(0, maximum_tolerance if maximum_tolerance < len(big_word) else len(big_word)):
+            tolerance = tol
+            success_flag, tokenization, max_tokenization_len, tokenization_score = find_subwords(0, len(big_word), maximum_len, tolerance)
+            if success_flag:
+                break
+
+        if not success_flag:
+            print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
+        else:
+            print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
+                  "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
+
+        # print("[Hashtag Tokenizer] Replacing:\t %s --> %s" % (word, tokenization))
+        if success_flag:
+            return True, tokenization
+        else:
+            return False, None
     else:
-        return False,None
+        return False, None
 
 # # Alternative implementation - just for completeness of the codebase during development
 # def recursive_hashtag_tokenization(self, hashtag):

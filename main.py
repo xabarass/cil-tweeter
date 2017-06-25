@@ -20,11 +20,13 @@ twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
 print("Creating vocabulary...")
 preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
 
-vocabulary_transformer = DefaultVocabularyTransformer(preprocessor, **config.vocabulary_transformer_opt)
+vocabulary_transformer = DefaultVocabularyTransformer(preprocessor,
+                                                      **config.vocabulary_transformer_opt)
 
 vocabulary = Vocabulary(vocab_transformer=vocabulary_transformer,
                         vocab_path=config.vocab_path,
-                        test_vocab_path=config.test_vocab_path)
+                        test_vocab_path=config.test_vocab_path,
+                        **config.vocabulary_opt)
 
 print("Preprocessing data set...")
 preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)

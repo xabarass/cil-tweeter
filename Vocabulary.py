@@ -6,7 +6,7 @@ from TextRegularizer import TextRegularizer
 
 
 class Vocabulary:
-    def __init__(self, vocab_transformer, vocab_path, test_vocab_path=None):
+    def __init__(self, vocab_transformer, vocabulary_filter, vocab_path, test_vocab_path=None):
         """Load and compute vocabulary from output of twitter-datasets/build_vocab.sh"""
         if vocab_transformer is None:
              raise Exception("Not a valid vocabulary transformer supplied: %s" % repr(vocab_transformer))
@@ -16,13 +16,14 @@ class Vocabulary:
         # Initialize vocabulary state
         self.word_to_id = {}
         self.word_to_occurrence = {}
+        self.vocabulary_filter=vocabulary_filter
 
         # Refer to vocab to enable online tweet preprocessing from within the preprocessor
         self.preprocessor = vocab_transformer.preprocessor
         vocab_transformer.preprocessor.register_vocabulary(self)
 
-        if hasattr(vocab_transformer.vocabulary_filter,"min_word_occurrence"):
-            self.min_word_occurrence = vocab_transformer.vocabulary_filter.min_word_occurrence
+        if hasattr(vocabulary_filter,"min_word_occurrence"):
+            self.min_word_occurrence = vocabulary_filter.min_word_occurrence
         else:
             raise
 
@@ -84,15 +85,11 @@ class Vocabulary:
 
 class DefaultVocabularyTransformer:
     """Function object that creates word_to_id vocabulary dictionary from word_to_occurrence statistics of corpus"""
-    def __init__(self, preprocessor, vocabulary_filter):
+    def __init__(self, preprocessor, vocabulary_transformer_filter):
         self.preprocessor = preprocessor
-        self.vocabulary_filter = vocabulary_filter
-        self._vocabulary_generated = False
-
+        self.vocabulary_filter = vocabulary_transformer_filter
 
     def __call__(self, word_to_occurrence_full):
-        assert not self._vocabulary_generated
-
         self.vocab_preprocessor = self.preprocessor.clone_shallow() # create a deep copy of the preprocessor to be used for vocabulary generation
 
         class VocabularyProxy:
@@ -128,13 +125,13 @@ class DefaultVocabularyTransformer:
         extra_pass_count = 0
         while True:
             replaced_preprocessed_words = {}
-            print("\t[DefaultVocabularyTransformer]\t - %d-th extra pass" % (extra_pass_count+1))
+            #print("\t[DefaultVocabularyTransformer]\t - %d-th extra pass" % (extra_pass_count+1))
             for word in word_to_occurrence_full:
                 preprocessed_words = self.vocab_preprocessor.extra_pass_vocab(word) # preprocessor returns a list of words that word parameter gets preprocessed into
                 assert isinstance(preprocessed_words, list)
                 if preprocessed_words != word_to_preprocessed_words[word]:
-                    print("\t '{}':\n\t\t[{}]\t --> \t[{}]".format(word, ', '.join(word_to_preprocessed_words[word]),
-                                                                                ', '.join(preprocessed_words)))
+                    #print("\t '{}':\n\t\t[{}]\t --> \t[{}]".format(word, ', '.join(word_to_preprocessed_words[word]),
+                    #                                                            ', '.join(preprocessed_words)))
                     replaced_preprocessed_words[word] = word_to_preprocessed_words[word]
                     word_to_preprocessed_words[word] = preprocessed_words
 
@@ -224,6 +221,9 @@ class DefaultPreprocessor:
 
     def vocabulary_filtering_tweet(self, token_seq):
         # Replacing tokens by vocabulary terms or '<unk>' for unknown terms
+        # for word in token_seq:
+        #     if word not in self.vocabulary.word_to_id and len(word) > 3:
+        #         print("\tUnknown: %s" % word)
         return [(word if word in self.vocabulary.word_to_id else '<unk>') for word in token_seq]
 
     def filter_unknown_words_tweet(self, token_seq):
