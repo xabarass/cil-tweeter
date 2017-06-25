@@ -30,7 +30,7 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 if azure_config:
     validation_split_ratio=0.99
 elif local_config:
-    validation_split_ratio = 0.5
+    validation_split_ratio = 0.99
 else:
     raise
 
@@ -41,7 +41,7 @@ if azure_config:
 elif local_config:
     # Test run parameters
     test_run = True
-    test_run_data_ratio=0.01
+    test_run_data_ratio=1
 else:
     raise
 
@@ -51,13 +51,13 @@ preprocessor_opt = { "remove_unknown_words": True}
 # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
 min_word_occurrence = 4
 def vocabulary_filter(word, occurrence):
-    return occurrence >= min_word_occurrence
+    return (len(word) > 3 and occurrence > min_word_occurrence) or (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or (len(word) == 1 and occurrence >=50*min_word_occurrence)
 vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
 
 vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
 
 def vocabulary_transformer_filter(word, occurrence):
-    return (len(word) > 3 and occurrence) > 2 or (len(word) == 3 and occurrence >= 5) or (len(word) == 2 and occurrence >= 20)
+    return (len(word) > 3 and occurrence > 2) or (len(word) == 3 and occurrence >= 5) or (len(word) == 2 and occurrence >= 20) or (len(word) == 1 and occurrence >=1000)
 
 vocabulary_transformer_opt = { "vocabulary_transformer_filter": vocabulary_transformer_filter }
 

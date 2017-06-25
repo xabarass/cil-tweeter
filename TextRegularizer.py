@@ -118,10 +118,9 @@ def _convert_hashtag(word, word_to_occurrence):
         success_flag = False
         tokenization = []
         maximum_len = 15
-        maximum_tolerance = 5
+        maximum_tolerance = int(len(big_word)/2)
 
-        for tol in range(0, maximum_tolerance if maximum_tolerance < len(big_word) else len(big_word)):
-            tolerance = tol
+        for tolerance in range(0, maximum_tolerance):
             success_flag, tokenization, max_tokenization_len, tokenization_score = find_subwords(0, len(big_word), maximum_len, tolerance)
             if success_flag:
                 break

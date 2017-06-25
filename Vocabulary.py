@@ -62,6 +62,18 @@ class Vocabulary:
 
         print("Vocabulary of model has {} words".format(len(self.word_to_id)))
 
+        # print("*********** Computing short word sorted by frequencies ***********")
+        # short_words = {1: [], 2: [], 3: []}
+        # for word, occurrence in self.word_to_occurrence.items():
+        #     if len(word) < 4 and occurrence > 10:
+        #         short_words[len(word)].append((-occurrence, word))
+        #
+        # for size, words in short_words.items():
+        #     words.sort()
+        #     print("Words of length %d" % size)
+        #     for occurrence, word in words:
+        #         print("\t %d : %s" % (-occurrence, word))
+
     @property
     def word_count(self):
         return len(self.word_to_id)
