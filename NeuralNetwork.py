@@ -26,16 +26,20 @@ class ModelEvaluater(Callback):
         self.model=model
         self.x_val=x_val
         self.y_val=y_val
-        self.emailer=Emailer('Training network update', config.email)
+        if hasattr(config,'email'):
+            self.emailer=Emailer('Training network update', config.email)
+        else:
+            self.emailer=None
 
     def on_epoch_end(self, epoch, logs=None):
         print("\nEvaluating epoch...")
         scores = self.model.evaluate(self.x_val, self.y_val, verbose=1)
         print("\n\tValidation accuracy: %.2f%%" % (scores[1] * 100))
-        try:
-            self.emailer.send_report("Epoch {} has score {}% on validation".format(epoch,scores[1]*100));
-        except Exception:
-            print("Error sending email!")
+        if self.emailer is not None:
+            try:
+                self.emailer.send_report("Epoch {} has score {}% on validation".format(epoch,scores[1]*100));
+            except Exception:
+                print("Error sending email!")
 
 
 class ModelPredicter(Callback):
