@@ -46,8 +46,16 @@ else:
     raise
 
 # Vocabulary generation
-preprocessor_opt = { "min_word_occurrence":4,
-                     "remove_unknown_words": False}
+preprocessor_opt = { "remove_unknown_words": True}
+
+# TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
+def vocabulary_filter_factory(min_word_occurrence):
+    def vocabulary_filter(word, occurrence):
+        return occurrence >= min_word_occurrence
+    vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
+    return vocabulary_filter
+
+vocabulary_transformer_opt = { "vocabulary_filter": vocabulary_filter_factory(4) }
 
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",

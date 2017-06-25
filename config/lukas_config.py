@@ -11,6 +11,7 @@ elif user_name in {"lukas"}:
     local_config = True
 
 # Data set file paths
+
 if azure_config:
     positive_tweets='./twitter-datasets/train_pos_full.txt'
     negative_tweets='./twitter-datasets/train_neg_full.txt'
@@ -48,11 +49,10 @@ else:
 preprocessor_opt = { "remove_unknown_words": True}
 
 # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
-
 def vocabulary_filter_factory(min_word_occurrence):
     def vocabulary_filter(word, occurrence):
         return occurrence >= min_word_occurrence
-    vocabulary_filter.min_word_occurrence = min_word_occurrence
+    vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
     return vocabulary_filter
 
 vocabulary_transformer_opt = { "vocabulary_filter": vocabulary_filter_factory(4) }
