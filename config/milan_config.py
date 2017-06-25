@@ -17,9 +17,9 @@ if azure_config:
     negative_tweets='./twitter-datasets/train_neg_full.txt'
     vocab_path='./twitter-datasets/vocab_full.txt'
 elif local_config:
-    positive_tweets='./twitter-datasets/train_pos.txt'
-    negative_tweets='./twitter-datasets/train_neg.txt'
-    vocab_path='./twitter-datasets/vocab.txt'
+    positive_tweets='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/train_pos.txt'
+    negative_tweets='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/train_neg.txt'
+    vocab_path='/home/milan/fax/computational_intelligence_lab/project/twitter-datasets/vocab.txt'
 else:
     raise
 
@@ -30,7 +30,7 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 if azure_config:
     validation_split_ratio=0.99
 elif local_config:
-    validation_split_ratio = 0.8
+    validation_split_ratio = 0.5
 else:
     raise
 
@@ -40,8 +40,8 @@ if azure_config:
     test_run_data_ratio=1
 elif local_config:
     # Test run parameters
-    test_run = True
-    test_run_data_ratio=1
+    test_run = False
+    test_run_data_ratio=0.5
 else:
     raise
 
@@ -52,11 +52,11 @@ preprocessor_opt = { "min_word_occurrence":4,
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
-                       "trainable": True,
+                       "trainable": False,
                        "corpus_name": "full.emb"}
 
 # Training parameters
-training_opt = {"epochs":3,
+training_opt = {"epochs":4,
                 "batch_size":64 }
 
 # Results output parameters
@@ -66,3 +66,4 @@ misclassified_samples_file = 'misclassified_samples/misclassified_{}_samples'
 # Load model parameters
 model_save_path = "model"
 
+email="milanpandurov@gmail.com"
