@@ -2,6 +2,7 @@ import pickle
 import logging
 import os
 import numpy as np
+from tqdm import tqdm
 from TextRegularizer import TextRegularizer
 
 
@@ -119,7 +120,7 @@ class DefaultVocabularyTransformer:
         self.vocab_preprocessor.register_vocabulary(
             VocabularyProxy(preprocessed_word_to_occurrence, self.vocabulary_filter) )
 
-        for word in word_to_occurrence_full:
+        for word in tqdm(word_to_occurrence_full, desc="[VocabularyTransformer] - initial_pass"):
             preprocessed_words = self.vocab_preprocessor.initial_pass_vocab(word) # preprocessor returns a list of words that word parameter gets preprocessed into
             assert isinstance(preprocessed_words, list)
             word_to_preprocessed_words[word] = preprocessed_words
@@ -138,7 +139,7 @@ class DefaultVocabularyTransformer:
         while True:
             replaced_preprocessed_words = {}
             #print("\t[DefaultVocabularyTransformer]\t - %d-th extra pass" % (extra_pass_count+1))
-            for word in word_to_occurrence_full:
+            for word in tqdm(word_to_occurrence_full, desc="[VocabularyTransformer] - extra_pass %d" % (extra_pass_count + 1) ):
                 preprocessed_words = self.vocab_preprocessor.extra_pass_vocab(word) # preprocessor returns a list of words that word parameter gets preprocessed into
                 assert isinstance(preprocessed_words, list)
                 if preprocessed_words != word_to_preprocessed_words[word]:

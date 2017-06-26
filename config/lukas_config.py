@@ -5,7 +5,7 @@ local_config = None
 
 user_name = getpass.getuser()
 
-if user_name in {"lukasd"}:
+if user_name in {"lukasd","nforster"}:
     azure_config = True
 elif user_name in {"lukas"}:
     local_config = True
@@ -17,9 +17,9 @@ if azure_config:
     negative_tweets='./twitter-datasets/train_neg_full.txt'
     vocab_path='./twitter-datasets/vocab_full.txt'
 elif local_config:
-    positive_tweets='./twitter-datasets/train_pos.txt'
-    negative_tweets='./twitter-datasets/train_neg.txt'
-    vocab_path='./twitter-datasets/vocab.txt'
+    positive_tweets='./twitter-datasets/train_pos_full.txt'
+    negative_tweets='./twitter-datasets/train_neg_full.txt'
+    vocab_path='./twitter-datasets/vocab_full.txt'
 else:
     raise
 
@@ -40,7 +40,7 @@ if azure_config:
     test_run_data_ratio=1
 elif local_config:
     # Test run parameters
-    test_run = True
+    test_run = False
     test_run_data_ratio=1
 else:
     raise
@@ -57,7 +57,7 @@ vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by th
 vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
 
 def vocabulary_transformer_filter(word, occurrence):
-    return (len(word) > 3 and occurrence > 2) or (len(word) == 3 and occurrence >= 5) or (len(word) == 2 and occurrence >= 20) or (len(word) == 1 and occurrence >=1000)
+    return (len(word) > 3 and occurrence > min_word_occurrence) or (len(word) == 3 and occurrence >= 2.5*min_word_occurrence) or (len(word) == 2 and occurrence >= 50*min_word_occurrence) or (len(word) == 1 and occurrence >=1000*min_word_occurrence)
 
 vocabulary_transformer_opt = { "vocabulary_transformer_filter": vocabulary_transformer_filter }
 

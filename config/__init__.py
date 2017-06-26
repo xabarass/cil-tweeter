@@ -9,5 +9,5 @@ elif user_name in {"franzm"}:
     from .michael_config import *
 elif user_name in {"allandre"}:
     from .andreas_config import *
-elif user_name in {"lukas","lukasd"}:
+elif user_name in {"lukas","lukasd","nforster"}:
     from .lukas_config import *
