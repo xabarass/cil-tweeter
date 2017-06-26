@@ -120,14 +120,14 @@ def _convert_hashtag(word, word_to_occurrence):
         maximum_len = max(20, len(big_word)/2.5)
         maximum_tolerance = min(int(len(big_word)/2), 5) if len(big_word) < 30 else int(100/len(big_word))
 
-        print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
+        #print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
         for tolerance in range(0, maximum_tolerance):
             success_flag, tokenization, max_tokenization_len, tokenization_score = find_subwords(0, len(big_word), maximum_len, tolerance)
             if success_flag:
                 break
 
-        #if not success_flag:
-        #    print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
+        if not success_flag:
+            print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
         # else:
         #     print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
         #           "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
