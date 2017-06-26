@@ -5,14 +5,10 @@ local_config = None
 
 user_name = getpass.getuser()
 
-if user_name in {"lukasd"}:
+if user_name in {"nforster"}:
     azure_config = True
-elif user_name in {"lukas"}:
+else:
     local_config = True
-
-# TBD: prepend output directory to output files
-#def output_path_prefix(file_name):
-#    file_path = "runs"
 
 
 # Data set file paths
@@ -73,7 +69,7 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "corpus_name": "full.emb"}
 
 # Training parameters
-training_opt = {"epochs":1,
+training_opt = {"epochs":3,
                 "batch_size":64 }
 
 # Results output parameters
