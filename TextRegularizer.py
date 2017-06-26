@@ -59,6 +59,7 @@ def _convert_hashtag(word, word_to_occurrence):
         big_word=word[1:]
         match_found=False
 
+        find_subwords_cache = {}
 
 
         # Find optimal tokenization of big_word[from_index:end_index] of maximum size max_len
@@ -75,6 +76,13 @@ def _convert_hashtag(word, word_to_occurrence):
 
             base_from_index = from_index
 
+            if base_from_index in find_subwords_cache:
+                cached_result = find_subwords_cache[base_from_index]
+                if cached_result[2] <= max_len:
+                    return cached_result[0], cached_result[1], cached_result[2], cached_result[3]
+                else:
+                    return False, [], 0, 0
+
             success_flag = False
             best_tokenization=[]
             best_score = 0
@@ -90,12 +98,16 @@ def _convert_hashtag(word, word_to_occurrence):
                     if current_token in word_to_occurrence:
                         # print("Found word %s" %current_token)
                         current_token_score = word_to_occurrence[current_token]*len(current_token)
+                        # current_token_len = len(current_token)
+                        # if current_token_score*current_token_len < best_token_score*best_token_len:
+                        #     continue
                         child_success_flag, child_tokenization, child_len, child_score = find_subwords(to_index, end_index, max_len-1, tolerance)
                         assert child_len < max_len
                         if child_success_flag and \
                                 ((not success_flag) or
                                   child_len + 1 < max_len or
                                  (child_len + 1 == max_len and child_score + current_token_score > best_score)):
+
                             best_tokenization = [current_token]
                             best_tokenization += child_tokenization
                             max_len = len(best_tokenization)
@@ -110,33 +122,34 @@ def _convert_hashtag(word, word_to_occurrence):
                 else:
                     break
 
+            assert base_from_index not in find_subwords_cache
             if not success_flag and base_from_index + tolerance >= end_index:
+                find_subwords_cache[base_from_index] = (True, [], 0, 0)
                 return True, [], 0, 0
 
+            find_subwords_cache[base_from_index] = (success_flag, best_tokenization, max_len, best_score)
             return success_flag, best_tokenization, max_len, best_score
 
         success_flag = False
         tokenization = []
 
+        #big_word = "putyourtesthashtagstringheretotestthisfunction"
+
         #print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
-        if len(big_word) < 50:
-            maximum_len = max(20, len(big_word)/2.5)
-            maximum_tolerance = 5 if len(big_word) < 30 else int(100/len(big_word))
+        maximum_len = max(20, len(big_word)/2)
+        maximum_tolerance = 5 if len(big_word) < 15 else int(len(big_word)/3)
 
-            for tolerance in range(0, maximum_tolerance):
-                success_flag, tokenization, max_tokenization_len, tokenization_score = find_subwords(0, len(big_word), maximum_len, tolerance)
-                if success_flag:
-                    break
-        else:
-            print("[Hashtag Tokenizer] Token too long: %s" % big_word)
-            success_flag = False
+        for tolerance in range(0, maximum_tolerance):
+            success_flag, tokenization, max_tokenization_len, tokenization_score = find_subwords(0, len(big_word), maximum_len, tolerance)
+            if success_flag:
+                break
 
-
-        # if not success_flag:
-        #     print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
-        # else:
-        #     print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
-        #           "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
+        if len(big_word) > 50:
+            if not success_flag:
+                print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
+            else:
+                print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
+                      "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
 
         if success_flag:
             return True, tokenization

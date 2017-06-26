@@ -10,6 +10,11 @@ if user_name in {"lukasd","nforster"}:
 elif user_name in {"lukas"}:
     local_config = True
 
+# TBD: prepend output directory to output files
+#def output_path_prefix(file_name):
+#    file_path = "runs"
+
+
 # Data set file paths
 
 if azure_config:
@@ -57,7 +62,7 @@ vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by th
 vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
 
 def vocabulary_transformer_filter(word, occurrence):
-    return (len(word) > 3 and occurrence > min_word_occurrence) or (len(word) == 3 and occurrence >= 2.5*min_word_occurrence) or (len(word) == 2 and occurrence >= 50*min_word_occurrence) or (len(word) == 1 and occurrence >=1000*min_word_occurrence)
+    return (len(word) > 3 and occurrence > min_word_occurrence) or (len(word) == 3 and occurrence >= 3*min_word_occurrence) or (len(word) == 2 and occurrence >= 100*min_word_occurrence) or (len(word) == 1 and occurrence >=1000*min_word_occurrence)
 
 vocabulary_transformer_opt = { "vocabulary_transformer_filter": vocabulary_transformer_filter }
 
