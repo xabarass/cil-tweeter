@@ -158,28 +158,6 @@ def _convert_hashtag(word, word_to_occurrence):
     else:
         return False, None
 
-# # Alternative implementation - just for completeness of the codebase during development
-# def recursive_hashtag_tokenization(self, hashtag):
-#     def find_tokenization(tweet):
-#         tokenization = []
-#         occurrence = 0
-#         for begin in range(3):
-#             for end in range(begin + 2, len(tweet) + 1):
-#                 if tweet[begin:end] in self.word_to_id and \
-#                         (len(tweet[begin:end]) > 3 or self.word_to_occurrence[tweet[begin:end]] > 50) and \
-#                         (len(tweet[begin:end]) > 2 or self.word_to_occurrence[tweet[begin:end]] > 200):
-#                     tokens, accum_occurrence = find_tokenization(tweet[end:])
-#                     if len(tokens) == 0 and len(tweet[end:]) > 3:
-#                         continue
-#                     if (end - begin) + accum_occurrence > occurrence:
-#                         tokenization = [tweet[begin:end]] + tokens
-#                         occurrence = (end - begin) + accum_occurrence
-#         return tokenization, occurrence
-#
-#     tokenized_hashtag, accum_occurrence = find_tokenization(hashtag.lstrip('#'))
-#     print("Tokenizing hashtag... \t{}  -->   \t[{}]\n".format(hashtag, ', '.join(tokenized_hashtag)))
-#     return tokenized_hashtag, accum_occurrence
-
 
 def _tag_number(word, word_to_occurrence):
     number_of_digits = sum(c.isdigit() for c in word)
