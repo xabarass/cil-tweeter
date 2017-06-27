@@ -12,14 +12,14 @@ if user_name in {"nforster"}:
 # Data set file paths
 
 if azure_config:
-    positive_tweets='./datasets/train_pos_full.txt'
-    negative_tweets='./datasets/train_neg_full.txt'
-    vocab_path='./datasets/vocab_full.txt'
+    positive_tweets='./twitter-datasets/train_pos_full.txt'
+    negative_tweets='./twitter-datasets/train_neg_full.txt'
+    vocab_path='./twitter-datasets/vocab_full.txt'
 else:
     raise
 
-test_vocab_path='./datasets/test_vocab.txt'
-test_data='./datasets/cleared_test_data.txt'
+test_vocab_path='./twitter-datasets/test_vocab.txt'
+test_data='./twitter-datasets/cleared_test_data.txt'
 
 # Dataset parameters (size of validation data set)
 if azure_config:
