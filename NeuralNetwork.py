@@ -251,6 +251,7 @@ class Network:
         # Create training data
         (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split()
 
+        #TODO: Move this to the TrainingDataset/Danger of wrongly chosen padding symbol
         x_train = sequence.pad_sequences(x_train, maxlen=preprocessed_dataset.max_tweet_length)
         x_val   = sequence.pad_sequences(x_val,   maxlen=preprocessed_dataset.max_tweet_length)
 
