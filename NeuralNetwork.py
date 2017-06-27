@@ -10,6 +10,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import os
 from keras.callbacks import Callback
+from keras.callbacks import TensorBoard
 
 import Models
 from Emailer import Emailer
@@ -287,6 +288,11 @@ class Network:
         if not config.test_run: # TODO: make callbacks accessible from config
             predicter=ModelPredicter(model, preprocessed_dataset, model_save_path, result_epoch_file)
             callbacks.append(predicter)
+
+        tensorBoard=TensorBoard(log_dir='./TensorBoard', histogram_freq=0,
+                    write_graph=True, write_images=True)
+
+        callbacks.append(tensorBoard)
 
         model.fit(x_train, y_train, callbacks=callbacks, **training_opt_param)
 
