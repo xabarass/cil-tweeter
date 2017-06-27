@@ -139,7 +139,7 @@ class IterativeVocabularyGenerator:
                                   preprocessed_word_to_occurrence=preprocessed_word_to_occurrence,
                                   extra_pass_count=extra_pass_count+1)
 
-            print("[VocabularyTransformer] - extra_pass %d: Updated %d tokenizations" % (extra_pass_count+1, len(replaced_preprocessed_words)))
+            print("[VocabularyGenerator] - extra_pass %d: Updated %d tokenizations" % (extra_pass_count+1, len(replaced_preprocessed_words)))
             if len(replaced_preprocessed_words) == 0:
                 break
 
@@ -285,7 +285,7 @@ class LexicalPreprocessor(BasePreprocessor):
         return preprocessor
 
     def get_special_symbols(self):
-        return ['<unk>']
+        return ['<pad>','<unk>']
 
     def initial_pass_vocab(self, word):
         return self.lexical_preprocessing_tweet(word)
@@ -310,7 +310,7 @@ class RegularizingPreprocessor(BasePreprocessor):
         self.tr = TextRegularizer(vocabulary)
 
     def get_special_symbols(self):
-        return ['<unk>'] + self.tr.get_special_words()
+        return ['<pad>','<unk>'] + self.tr.get_special_words()
 
     def clone_shallow(self):
         preprocessor = RegularizingPreprocessor(self.remove_unknown_words)
