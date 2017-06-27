@@ -19,7 +19,7 @@ if azure_config:
     test_run = False
 elif local_config:
     # Test run parameters
-    test_run = True
+    test_run = False
 else:
     raise
 

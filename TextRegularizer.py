@@ -55,7 +55,7 @@ def _convert_happy_birthday(word):
         return False, None
 
 def _convert_hashtag(word, word_to_occurrence):
-    if word.startswith('#'):
+    if word.startswith('#') and not word in word_to_occurrence:
         big_word=word[1:]
         match_found=False
 
@@ -150,6 +150,10 @@ def _convert_hashtag(word, word_to_occurrence):
         #     else:
         #         print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
         #               "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
+
+        #if not success_flag:
+        #    print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
+
 
         if success_flag:
             return True, tokenization
