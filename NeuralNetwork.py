@@ -11,6 +11,7 @@ from keras.preprocessing.sequence import pad_sequences
 import os
 from keras.callbacks import Callback
 
+import Models
 from Emailer import Emailer
 import config
 
@@ -171,9 +172,10 @@ class Network:
     def create_model(cls,
                      preprocessed_dataset,
                      vocabulary,
-                     word_embeddings_opt={}):
+                     word_embeddings_opt={},
+                     model_builder=None):
 
-        model = Sequential()
+        assert model_builder is not None
 
         # Create embedding layer
         word_embeddings_opt_param = {"initializer": "word2vec", "dim": 400, "trainable": False, "corpus_name": None}
@@ -197,10 +199,7 @@ class Network:
         print("Created Embedding layer - Word count %d, dimensions %d, max tweet length %d" %
               (vocabulary.word_count, word_embeddings_opt_param["dim"], preprocessed_dataset.max_tweet_length))
 
-        model.add(embedding_layer)
-        model.add(LSTM(200))
-        model.add(Dropout(0.5))
-        model.add(Dense(1, activation='sigmoid'))
+        model=model_builder.get_model(embedding_layer)
 
         model.compile(loss='binary_crossentropy',
                       optimizer='adam',

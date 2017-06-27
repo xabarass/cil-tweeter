@@ -7,6 +7,7 @@ import config
 from NeuralNetwork import Network
 from TwitterDataset import TwitterDataSet
 from Vocabulary import Vocabulary, DefaultVocabularyTransformer, DefaultPreprocessor, SinglePassVocabularyGenerator, LexicalPreprocessor
+import Models as ModelFactory
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -27,8 +28,6 @@ preprocessor = LexicalPreprocessor(**config.preprocessor_opt)
 vocabulary_generator = SinglePassVocabularyGenerator(preprocessor,
                                                        **config.vocabulary_transformer_opt)
 
-
-
 vocabulary = Vocabulary(vocab_transformer=vocabulary_generator,
                         vocab_path=config.vocab_path,
                         test_vocab_path=config.test_vocab_path,
@@ -45,8 +44,9 @@ print("Create model...")
 model = Network.create_model(
                       preprocessed_dataset=preprocessed_dataset,
                       vocabulary=vocabulary,
-                      word_embeddings_opt=config.word_embeddings_opt)
-
+                      word_embeddings_opt=config.word_embeddings_opt,
+                      model_builder=config.model_builder
+                    )
 
 print("Train model...")
 Network.train(model=model,
