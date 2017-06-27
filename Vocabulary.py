@@ -176,7 +176,7 @@ def initial_pass_vocabulary(word_to_occurrence_full, tokenizer):
     word_to_preprocessed_words = {}
     preprocessed_word_to_occurrence = {}
 
-    for word in tqdm(word_to_occurrence_full, desc="[VocabularyGeneration] - initial pass"):
+    for word in tqdm(word_to_occurrence_full, desc="[VocabularyGen] - initial pass (token generation)"):
         preprocessed_words = tokenizer(word)  # preprocessor returns a list of words that word parameter gets preprocessed into
         assert isinstance(preprocessed_words, list)
         word_to_preprocessed_words[word] = preprocessed_words
@@ -198,7 +198,7 @@ def extra_pass_vocabulary(word_to_occurrence_full,
 
     replaced_preprocessed_words = {}
     # print("\t[DefaultVocabularyTransformer]\t - %d-th extra pass" % (extra_pass_count+1))
-    for word in tqdm(word_to_occurrence_full,desc="[VocabularyGeneration] - extra pass %d: Updating tokenizations" % (extra_pass_count)):
+    for word in tqdm(word_to_occurrence_full,desc="[VocabularyGen] - extra pass %d: Updating tokenizations" % (extra_pass_count)):
         preprocessed_words = tokenizer(word)  # preprocessor returns a list of words that word parameter gets preprocessed into
         assert isinstance(preprocessed_words, list)
         if preprocessed_words != word_to_preprocessed_words[word]:
