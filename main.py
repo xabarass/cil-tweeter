@@ -21,11 +21,11 @@ print("Creating vocabulary...")
 preprocessor = RegularizingPreprocessor(**config.preprocessor_opt)
 
 bound_vocabulary_generator = lambda _preprocessor: IterativeVocabularyGenerator(_preprocessor,
-                                                                                **config.vocabulary_transformer_opt)
+                                                                                **config.vocabulary_generator_opt)
 # preprocessor = LexicalPreprocessor(**config.preprocessor_opt)
 #
 # bound_vocabulary_generator = lambda _preprocessor: SinglePassVocabularyGenerator(_preprocessor,
-#                                                                                  **config.vocabulary_transformer_opt)
+#                                                                                  **config.vocabulary_generator_opt)
 
 vocabulary = Vocabulary(preprocessor=preprocessor,
                         bound_vocab_generator=bound_vocabulary_generator,
