@@ -310,7 +310,7 @@ class RegularizingPreprocessor(BasePreprocessor):
         self.tr = TextRegularizer(vocabulary)
 
     def get_special_symbols(self):
-        return ['<pad>','<unk>'] + self.tr.get_special_words()
+        return ['<pad>','<unk>'] #+ self.tr.get_special_words()
 
     def clone_shallow(self):
         preprocessor = RegularizingPreprocessor(self.remove_unknown_words)
