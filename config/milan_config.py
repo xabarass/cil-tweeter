@@ -56,10 +56,10 @@ vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by th
 
 vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
 
-def vocabulary_transformer_filter(word, occurrence):
+def vocabulary_generator_filter(word, occurrence):
     return (len(word) > 3 and occurrence > 2) or (len(word) == 3 and occurrence >= 5) or (len(word) == 2 and occurrence >= 20) or (len(word) == 1 and occurrence >=1000)
 
-vocabulary_transformer_opt = { "vocabulary_transformer_filter": vocabulary_transformer_filter }
+vocabulary_generator_opt = { "vocabulary_generator_filter": vocabulary_generator_filter }
 
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
