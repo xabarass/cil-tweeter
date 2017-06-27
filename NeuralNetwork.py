@@ -249,10 +249,7 @@ class Network:
         training_opt_param.update(training_opt)
 
         # Create training data
-        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split()
-
-        x_train = sequence.pad_sequences(x_train, maxlen=preprocessed_dataset.max_tweet_length)
-        x_val   = sequence.pad_sequences(x_val,   maxlen=preprocessed_dataset.max_tweet_length)
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split_padded()
 
         evaluater=ModelEvaluater(model, preprocessed_dataset, x_val, y_val)
         callbacks=[evaluater]
@@ -277,10 +274,7 @@ class Network:
         training_opt_param.update(training_opt)
 
         # Create training data
-        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split()
-
-        x_train = sequence.pad_sequences(x_train, maxlen=preprocessed_dataset.max_tweet_length)
-        x_val   = sequence.pad_sequences(x_val,   maxlen=preprocessed_dataset.max_tweet_length)
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split_padded()
 
         evaluater=ModelEvaluater(model, preprocessed_dataset, x_val, y_val)
         callbacks=[evaluater]
@@ -307,7 +301,7 @@ class Network:
         def evaluate_misclassified_samples(x, y, x_orig, phase):
             misclassified_samples = []
 
-            x_padded = sequence.pad_sequences(x[:], maxlen=preprocessed_dataset.max_tweet_length)
+            x_padded = sequence.pad_sequences(x[:], maxlen=preprocessed_dataset.max_tweet_length, value=vocabulary.word_to_id['<pad>'])
             pred_y = model.predict(x_padded, batch_size=64).reshape([-1])
 
             for i in range(pred_y.shape[0]):
@@ -332,8 +326,7 @@ class Network:
         if not model:
             raise Exception("You need to train or load a pretrained model in order to predict")
 
-        x_test = sequence.pad_sequences(preprocessed_dataset.test_tweets,
-                                        maxlen=preprocessed_dataset.max_tweet_length)
+        x_test = preprocessed_dataset.test_tweets_padded()
         predictions = model.predict(x_test, batch_size=64)
 
         print("Done with predictions, generating submission file...")

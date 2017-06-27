@@ -6,8 +6,8 @@ import config
 
 from NeuralNetwork import Network
 from TwitterDataset import TwitterDataSet
-from Vocabulary import Vocabulary, DefaultVocabularyTransformer, DefaultPreprocessor, SinglePassVocabularyGenerator, LexicalPreprocessor
-import Models as ModelFactory
+
+from Vocabulary import Vocabulary, IterativeVocabularyGenerator, RegularizingPreprocessor, SinglePassVocabularyGenerator, LexicalPreprocessor
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -19,16 +19,18 @@ twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
                                  test_data=config.test_data)
 
 print("Creating vocabulary...")
-# preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
+
+preprocessor = RegularizingPreprocessor(**config.preprocessor_opt)
+
+bound_vocabulary_generator = lambda _preprocessor: IterativeVocabularyGenerator(_preprocessor,
+                                                                                **config.vocabulary_generator_opt)
+# preprocessor = LexicalPreprocessor(**config.preprocessor_opt)
 #
-# vocabulary_generator = DefaultVocabularyTransformer(preprocessor,
-#                                                       **config.vocabulary_transformer_opt)
-preprocessor = LexicalPreprocessor(**config.preprocessor_opt)
+# bound_vocabulary_generator = lambda _preprocessor: SinglePassVocabularyGenerator(_preprocessor,
+#                                                                                  **config.vocabulary_generator_opt)
 
-vocabulary_generator = SinglePassVocabularyGenerator(preprocessor,
-                                                       **config.vocabulary_transformer_opt)
-
-vocabulary = Vocabulary(vocab_transformer=vocabulary_generator,
+vocabulary = Vocabulary(preprocessor=preprocessor,
+                        bound_vocab_generator=bound_vocabulary_generator,
                         vocab_path=config.vocab_path,
                         test_vocab_path=config.test_vocab_path,
                         **config.vocabulary_opt)

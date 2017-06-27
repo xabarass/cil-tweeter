@@ -55,7 +55,7 @@ def _convert_happy_birthday(word):
         return False, None
 
 def _convert_hashtag(word, word_to_occurrence):
-    if word.startswith('#'):
+    if word.startswith('#') and not word in word_to_occurrence:
         big_word=word[1:]
         match_found=False
 
@@ -135,7 +135,7 @@ def _convert_hashtag(word, word_to_occurrence):
 
         #big_word = "putyourtesthashtagstringheretotestthisfunction"
 
-        print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
+        #print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
         maximum_len = max(20, len(big_word)/2)
         maximum_tolerance = 5 if len(big_word) < 15 else int(len(big_word)/3)
 
@@ -150,6 +150,10 @@ def _convert_hashtag(word, word_to_occurrence):
         #     else:
         #         print("[Hashtag Tokenizer] Success (max_len = %d) for:      %s\n"
         #               "                                                --> [%s]" % (maximum_len, word, ', '.join(tokenization)))
+
+        #if not success_flag:
+        #    print("[Hashtag Tokenizer] Failed  (max_len = %d) for:\t %s " % (maximum_len, word))
+
 
         if success_flag:
             return True, tokenization
