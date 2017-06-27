@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import numpy as np
+from tqdm import tqdm
 
 import config
 
@@ -75,17 +76,20 @@ class TrainingDataset:
                                         :int(config.test_run_data_ratio * len(combined_training_dataset))]
             self.shuffled_original_train_tweets[:], self.shuffled_train_sentiments[:] = zip(*combined_training_dataset)
 
+        print("[TrainingDataset] Preprocessing training and test tweets...")
         if preprocess_tweet is not None:
-            self.shuffled_train_tweets = [preprocess_tweet(tweet)
-                                          for tweet in self.shuffled_original_train_tweets]
+            self.shuffled_train_tweets = []
+            for tweet in tqdm(self.shuffled_original_train_tweets, desc="Training tweets"):
+                self.shuffled_train_tweets.append(preprocess_tweet(tweet))
         else:
             self.shuffled_train_tweets = self.shuffled_original_train_tweets[:]
 
         self.original_test_tweets = twitter_dataset.original_test_tweets
 
         if preprocess_tweet is not None:
-            self.test_tweets = [preprocess_tweet(tweet)
-                                for tweet in self.original_test_tweets]
+            self.test_tweets = []
+            for tweet in tqdm(self.original_test_tweets, desc="Test tweets"):
+                self.test_tweets.append(preprocess_tweet(tweet))
         else:
             self.test_tweets = self.original_test_tweets[:]
 
@@ -95,11 +99,11 @@ class TrainingDataset:
             if len(id_seq) > self.max_tweet_length:
                 self.max_tweet_length = len(id_seq)
 
-        print("Max tweet length: %d" % self.max_tweet_length)
+        print("[TrainingDataset] Max tweet length: %d" % self.max_tweet_length)
 
     def shuffle_and_split(self):
         """Create training data set"""
-        print("Shuffling data...")
+        print("[TrainingDataset] Shuffling data...")
 
         combined_training_dataset = list(
             zip(self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments))
@@ -125,11 +129,13 @@ class PreprocessedDataset(TrainingDataset):
 
         super(PreprocessedDataset,self).__init__(twitter_dataset,training_validation_split_ratio,vocabulary.preprocess_and_map_tweet_to_id_seq)
 
-        self.shuffled_preprocessed_train_tweets = [ vocabulary.map_id_seq_to_tweet(id_seq)
-                                                    for id_seq in self.shuffled_train_tweets ]
+        self.shuffled_preprocessed_train_tweets = []
+        for id_seq in tqdm(self.shuffled_train_tweets,desc="Training tweets: generate tokens from id seq"):
+            self.shuffled_preprocessed_train_tweets.append( vocabulary.map_id_seq_to_tweet(id_seq) )
 
-        self.preprocessed_test_tweets = [ vocabulary.map_id_seq_to_tweet(id_seq)
-                                          for id_seq in self.test_tweets ]
+        self.preprocessed_test_tweets = []
+        for id_seq in tqdm(self.test_tweets, desc="Test tweets: generate tokens from id seq"):
+            self.preprocessed_test_tweets.append( vocabulary.map_id_seq_to_tweet(id_seq) )
 
         self.all_preprocessed_tweets_randomized = self.shuffled_preprocessed_train_tweets + self.preprocessed_test_tweets
 
@@ -145,6 +151,7 @@ class PreprocessedDataset(TrainingDataset):
         random.shuffle(tokenized_tweets_randomized)
         return tokenized_tweets_randomized
 
+# TODO: Character embeddings need a character vocabulary to map tweets to id sequences
 class UnpreprocessedDataset(TrainingDataset):
     def __init__(self, twitter_dataset, training_validation_split_ratio):
         super(UnpreprocessedDataset,self).__init__(twitter_dataset,training_validation_split_ratio)

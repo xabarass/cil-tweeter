@@ -6,7 +6,7 @@ import config
 
 from NeuralNetwork import Network
 from TwitterDataset import TwitterDataSet
-from Vocabulary import Vocabulary, DefaultVocabularyTransformer, DefaultPreprocessor
+from Vocabulary import Vocabulary, DefaultVocabularyTransformer, DefaultPreprocessor, SinglePassVocabularyGenerator, LexicalPreprocessor
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -18,17 +18,23 @@ twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
                                  test_data=config.test_data)
 
 print("Creating vocabulary...")
-preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
+# preprocessor = DefaultPreprocessor(**config.preprocessor_opt)
+#
+# vocabulary_generator = DefaultVocabularyTransformer(preprocessor,
+#                                                       **config.vocabulary_transformer_opt)
+preprocessor = LexicalPreprocessor(**config.preprocessor_opt)
 
-vocabulary_transformer = DefaultVocabularyTransformer(preprocessor,
-                                                      **config.vocabulary_transformer_opt)
+vocabulary_generator = SinglePassVocabularyGenerator(preprocessor,
+                                                       **config.vocabulary_transformer_opt)
 
-vocabulary = Vocabulary(vocab_transformer=vocabulary_transformer,
+
+
+vocabulary = Vocabulary(vocab_transformer=vocabulary_generator,
                         vocab_path=config.vocab_path,
                         test_vocab_path=config.test_vocab_path,
                         **config.vocabulary_opt)
 
-print("Preprocessing data set...")
+print("Creating training data set...")
 preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)
 
 timestamp = str(int(time.time()))
