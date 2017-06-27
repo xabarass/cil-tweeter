@@ -1,4 +1,5 @@
 import getpass
+import Models
 
 azure_config = None
 local_config = None
@@ -45,6 +46,8 @@ else:
 
 # Vocabulary generation
 preprocessor_opt = { "remove_unknown_words": True}
+model_builder=Models.DoubleConv()
+
 
 # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
 min_word_occurrence = 4
