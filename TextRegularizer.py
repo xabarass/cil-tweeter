@@ -135,7 +135,7 @@ def _convert_hashtag(word, word_to_occurrence):
 
         #big_word = "putyourtesthashtagstringheretotestthisfunction"
 
-        print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
+        #print("[Hashtag Tokenizer] Tokenizing %s" % big_word)
         maximum_len = max(20, len(big_word)/2)
         maximum_tolerance = 5 if len(big_word) < 15 else int(len(big_word)/3)
 
