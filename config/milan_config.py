@@ -1,4 +1,5 @@
 import getpass
+import Models
 
 azure_config = None
 local_config = None
@@ -30,7 +31,7 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 if azure_config:
     validation_split_ratio=0.99
 elif local_config:
-    validation_split_ratio = 0.5
+    validation_split_ratio = 0.8
 else:
     raise
 
@@ -41,12 +42,13 @@ if azure_config:
 elif local_config:
     # Test run parameters
     test_run = False
-    test_run_data_ratio=0.5
+    test_run_data_ratio=1
 else:
     raise
 
 # Vocabulary generation
 preprocessor_opt = { "remove_unknown_words": True}
+model_builder=Models.DoubleConv()
 
 # TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
 min_word_occurrence = 4

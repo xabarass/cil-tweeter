@@ -6,6 +6,7 @@ import config
 
 from NeuralNetwork import Network
 from TwitterDataset import TwitterDataSet
+
 from Vocabulary import Vocabulary, IterativeVocabularyGenerator, RegularizingPreprocessor, SinglePassVocabularyGenerator, LexicalPreprocessor
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -18,6 +19,7 @@ twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
                                  test_data=config.test_data)
 
 print("Creating vocabulary...")
+
 preprocessor = RegularizingPreprocessor(**config.preprocessor_opt)
 
 bound_vocabulary_generator = lambda _preprocessor: IterativeVocabularyGenerator(_preprocessor,
@@ -44,8 +46,9 @@ print("Create model...")
 model = Network.create_model(
                       preprocessed_dataset=preprocessed_dataset,
                       vocabulary=vocabulary,
-                      word_embeddings_opt=config.word_embeddings_opt)
-
+                      word_embeddings_opt=config.word_embeddings_opt,
+                      model_builder=config.model_builder
+                    )
 
 print("Train model...")
 Network.train(model=model,
