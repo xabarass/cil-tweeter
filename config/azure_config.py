@@ -60,7 +60,7 @@ vocabulary_generator_opt = { "vocabulary_generator_filter": vocabulary_generator
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
-                       "trainable": True,
+                       "trainable": False,
                        "corpus_name": "full.emb"}
 
 # Model parameter
