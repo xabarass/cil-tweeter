@@ -25,12 +25,12 @@ class DoubleConv:
     def get_model(self, embedding_layer):
         model = Sequential()
         model.add(embedding_layer)
-        model.add(Convolution1D(100,
+        model.add(Convolution1D(150,
                                 5,
                                 padding='valid',
                                 activation='relu'))
         model.add(MaxPooling1D())
-        model.add(Convolution1D(200,
+        model.add(Convolution1D(300,
                                 3,
                                 padding='valid',
                                 activation='relu'))
