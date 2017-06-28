@@ -64,7 +64,7 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "corpus_name": "full.emb"}
 
 # Model parameter
-model_builder=Models.DoubleConv()
+model_builder=Models.SingleLSTM({"lstm_units":250})
 
 # Training parameters
 training_opt = {"epochs":3,
