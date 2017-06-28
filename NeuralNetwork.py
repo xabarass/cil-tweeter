@@ -61,7 +61,6 @@ class ModelPredicter(Callback):
                             self.result_epoch_file.format(epoch))
 
 
-
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 from keras.wrappers.scikit_learn import KerasClassifier
