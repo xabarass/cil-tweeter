@@ -14,4 +14,4 @@ git checkout  5c83e51743304e8b6d06094690e3e38684a92ac3
 echo "[Main run] Running main.py for Double Conv..."
 python3 main.py > log_double_conv_run
 echo "[Main run] ...finished running main.py, done."
-
+git checkout single_lstm
