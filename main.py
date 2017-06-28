@@ -1,5 +1,3 @@
-import datetime
-import time
 import logging
 
 import config
@@ -38,10 +36,6 @@ vocabulary = Vocabulary(preprocessor=preprocessor,
 print("Creating training data set...")
 preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(vocabulary, config.validation_split_ratio)
 
-timestamp = str(int(time.time()))
-result_file = ('_' + timestamp + '.').join( config.result_file.split('.') )
-result_epoch_file = ('-e{}_' + timestamp + '.').join( config.result_file.split('.') )
-
 print("Create model...")
 model = Network.create_model(
                       preprocessed_dataset=preprocessed_dataset,
@@ -55,7 +49,7 @@ Network.train(model=model,
               preprocessed_dataset=preprocessed_dataset,
               training_opt=config.training_opt,
               model_save_path=config.model_save_path,
-              result_epoch_file=result_epoch_file)
+              result_epoch_file=config.result_epoch_file)
 
 print("Output misclassified samples...")
 Network.output_misclassified_samples(model=model,
@@ -63,7 +57,7 @@ Network.output_misclassified_samples(model=model,
                       misclassified_samples_file=config.misclassified_samples_file)
 
 print("Output predictions...")
-print("\tWriting to: {}".format(result_file))
+print("\tWriting to: {}".format(config.result_file))
 Network.predict(model=model,
                 preprocessed_dataset=preprocessed_dataset,
-                prediction_file=result_file)
+                prediction_file=config.result_file)
