@@ -57,6 +57,11 @@ class TwitterDataSet:
         return PreprocessedDataset(self, vocabulary, training_validation_split_ratio)
 
 
+def numpy_random_shuffle(training_list):
+    return [training_list[id] for id in
+            np.random.permutation(np.arange(len(training_list)))]
+
+
 # TODO: For character embeddings pass in a character vocabulary (mapping tweets to id sequences)
 class PreprocessedDataset:
     def __init__(self, twitter_dataset, vocabulary, training_validation_split_ratio):
@@ -73,7 +78,8 @@ class PreprocessedDataset:
         else:
             combined_training_dataset = list(
                 zip(twitter_dataset.original_train_tweets[:], twitter_dataset.train_sentiments[:]))
-            random.shuffle(combined_training_dataset)
+            #random.shuffle(combined_training_dataset)
+            combined_training_dataset = numpy_random_shuffle(combined_training_dataset)
             combined_training_dataset = combined_training_dataset[
                                         :int(config.test_run_data_ratio * len(combined_training_dataset))]
             self.shuffled_original_train_tweets[:], self.shuffled_train_sentiments[:] = zip(*combined_training_dataset)
@@ -115,7 +121,8 @@ class PreprocessedDataset:
         self.all_preprocessed_tweets_randomized = self.shuffled_preprocessed_train_tweets + self.preprocessed_test_tweets
 
     def all_preprocessed_tweets(self):
-        random.shuffle(self.all_preprocessed_tweets_randomized)
+        #random.shuffle(self.all_preprocessed_tweets_randomized)
+        self.all_preprocessed_tweets_randomized = numpy_random_shuffle(self.all_preprocessed_tweets_randomized)
         return self.all_preprocessed_tweets_randomized
 
     def all_tokenized_tweets(self):
@@ -123,7 +130,8 @@ class PreprocessedDataset:
                                         for tweet in self.shuffled_original_train_tweets]
         tokenized_tweets_randomized += [self.vocabulary.preprocessor.lexical_preprocessing_tweet(tweet)
                                         for tweet in self.original_test_tweets]
-        random.shuffle(tokenized_tweets_randomized)
+        #random.shuffle(tokenized_tweets_randomized)
+        tokenized_tweets_randomized = numpy_random_shuffle(tokenized_tweets_randomized)
         return tokenized_tweets_randomized
 
     def shuffle_and_split(self):
@@ -132,7 +140,8 @@ class PreprocessedDataset:
 
         combined_training_dataset = list(
             zip(self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments))
-        random.shuffle(combined_training_dataset)
+        #random.shuffle(combined_training_dataset)
+        combined_training_dataset = numpy_random_shuffle(combined_training_dataset)
         self.shuffled_original_train_tweets[:], self.shuffled_train_tweets[:], self.shuffled_train_sentiments[:] = zip(
             *combined_training_dataset)
 
