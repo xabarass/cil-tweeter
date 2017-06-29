@@ -23,7 +23,7 @@ from KerasUtils import save_model
 
 # Callbacks for logging during training
 class ModelEvaluater(Callback):
-    def __init__(self, model, preprocessed_dataset, x_val, y_val):
+    def __init__(self, model, x_val, y_val):
         super(Callback, self).__init__()
         self.model=model
         self.x_val=x_val
@@ -222,7 +222,7 @@ class Network:
                                     vocabulary=vocabulary,
                                     word_embeddings_opt=word_embeddings_opt)
 
-        #evaluater=ModelEvaluater(model, preprocessed_dataset, model, x_val, y_val, result_epoch_file=None) # problem: model, x_val, y_val not accessible at this time
+        #evaluater=ModelEvaluater(model, model, x_val, y_val, result_epoch_file=None) # problem: model, x_val, y_val not accessible at this time
 
         sklearn_model = KerasClassifier(build_fn=model_builder, epochs=3,
                                         batch_size=64, verbose=1 #, callbacks=[evaluater]
@@ -250,7 +250,7 @@ class Network:
         # Create training data
         (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split_padded()
 
-        evaluater=ModelEvaluater(model, preprocessed_dataset, x_val, y_val)
+        evaluater=ModelEvaluater(model, x_val, y_val)
         callbacks=[evaluater]
 
         if not config.test_run: # TODO: make callbacks accessible from config
@@ -273,9 +273,9 @@ class Network:
         training_opt_param.update(training_opt)
 
         # Create training data
-        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split_padded()
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split_padded(model.input_names)
 
-        evaluater=ModelEvaluater(model, preprocessed_dataset, x_val, y_val)
+        evaluater=ModelEvaluater(model, x_val, y_val)
         callbacks=[evaluater]
 
         if not config.test_run: # TODO: make callbacks accessible from config
@@ -300,14 +300,15 @@ class Network:
         def evaluate_misclassified_samples(x, y, x_orig, phase):
             misclassified_samples = []
 
-            x_padded = sequence.pad_sequences(x[:], maxlen=preprocessed_dataset.max_tweet_length, value=vocabulary.word_to_id['<pad>'])
+            x_padded = preprocessed_dataset.pad_tweets(x)
             pred_y = model.predict(x_padded, batch_size=64).reshape([-1])
 
             for i in range(pred_y.shape[0]):
                 if ((pred_y[i] > 0.5) and (y[i] == 0)) or \
                    ((pred_y[i] <= 0.5) and (y[i] == 1)):
                     misclassified_samples.append( ( 2*(pred_y[i]-0.5)*2*(y[i]-0.5), 2*(y[i]-0.5),
-                                                    x_orig[i], ' '.join([vocabulary.id_to_word[id] for id in x[i]]) ) )
+                                                    x_orig[i], ' '.join([vocabulary.id_to_word[id] for id in
+                                                                         (x[i] if not isinstance(x,dict) else x['forward_input'][i] )]) ) )
 
             misclassified_samples.sort()
 
@@ -316,7 +317,8 @@ class Network:
                 for sample in misclassified_samples:
                     mc_s_f.write( "\t{} :\t({})\n\t\t\t{}\n\t\t\t{}\n".format(sample[0], sample[1], sample[2], sample[3]) )
 
-        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split()
+        print("Outputting misclassified samples...")
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = preprocessed_dataset.shuffle_and_split(model.input_names)
         evaluate_misclassified_samples(x_val,  y_val, x_orig_val, "validation")
         evaluate_misclassified_samples(x_train, y_train, x_orig_train,"training")
 
@@ -325,7 +327,7 @@ class Network:
         if not model:
             raise Exception("You need to train or load a pretrained model in order to predict")
 
-        x_test = preprocessed_dataset.test_tweets_padded()
+        x_test = preprocessed_dataset.test_tweets_padded(model.input_names)
         predictions = model.predict(x_test, batch_size=64)
 
         print("Done with predictions, generating submission file...")

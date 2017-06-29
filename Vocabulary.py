@@ -139,7 +139,7 @@ class IterativeVocabularyGenerator:
                                   preprocessed_word_to_occurrence=preprocessed_word_to_occurrence,
                                   extra_pass_count=extra_pass_count+1)
 
-            print("[VocabularyGenerator] - extra_pass %d: Updated %d tokenizations" % (extra_pass_count+1, len(replaced_preprocessed_words)))
+            print("[VocabularyGen] - extra_pass %d: Updated %d tokenizations" % (extra_pass_count+1, len(replaced_preprocessed_words)))
             if len(replaced_preprocessed_words) == 0:
                 break
 

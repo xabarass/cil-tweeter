@@ -24,7 +24,7 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 # Dataset parameters (size of validation data set)
 if azure_config:
     print("Running Azure config!")
-    validation_split_ratio=0.99
+    validation_split_ratio=0.999
 else:
     raise
 
@@ -64,7 +64,7 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "corpus_name": "full.emb"}
 
 # Model parameter
-model_builder=Models.SingleLSTM({"lstm_units":250})
+model_builder=Models.BidirectionalLSTM({"lstm_units":250})
 
 # Training parameters
 training_opt = {"epochs":3,

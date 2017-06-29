@@ -95,15 +95,15 @@ class PreprocessedDataset:
         self.original_test_tweets = twitter_dataset.original_test_tweets
 
         if self.vocabulary is not None:
-            self.test_tweets = []
+            self._test_tweets = []
             for tweet in tqdm(self.original_test_tweets, desc="Test tweets"):
-                self.test_tweets.append(vocabulary.preprocess_and_map_tweet_to_id_seq(tweet))
+                self._test_tweets.append(vocabulary.preprocess_and_map_tweet_to_id_seq(tweet))
         else:
-            self.test_tweets = self.original_test_tweets[:]
+            self._test_tweets = self.original_test_tweets[:]
 
         # Store longest tweet length (as id sequence)
         self.max_tweet_length = 0
-        for id_seq in self.shuffled_train_tweets + self.test_tweets:
+        for id_seq in self.shuffled_train_tweets + self._test_tweets:
             if len(id_seq) > self.max_tweet_length:
                 self.max_tweet_length = len(id_seq)
 
@@ -115,7 +115,7 @@ class PreprocessedDataset:
             self.shuffled_preprocessed_train_tweets.append( vocabulary.map_id_seq_to_tweet(id_seq) )
 
         self.preprocessed_test_tweets = []
-        for id_seq in tqdm(self.test_tweets, desc="Test tweets: generate tokens from id seq"):
+        for id_seq in tqdm(self._test_tweets, desc="Test tweets: generate tokens from id seq"):
             self.preprocessed_test_tweets.append( vocabulary.map_id_seq_to_tweet(id_seq) )
 
         self.all_preprocessed_tweets_randomized = self.shuffled_preprocessed_train_tweets + self.preprocessed_test_tweets
@@ -134,10 +134,9 @@ class PreprocessedDataset:
         tokenized_tweets_randomized = numpy_random_shuffle(tokenized_tweets_randomized)
         return tokenized_tweets_randomized
 
-    def shuffle_and_split(self):
+    def shuffle_and_split(self, input_names=None):
         """Create training data set"""
         print("[TrainingDataset] Shuffling data...")
-
         combined_training_dataset = list(
             zip(self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments))
         #random.shuffle(combined_training_dataset)
@@ -154,15 +153,47 @@ class PreprocessedDataset:
         x_orig_val = self.shuffled_original_train_tweets[nb_validation_samples:]
         y_val = self.shuffled_train_sentiments[nb_validation_samples:]
 
+        x_train = tweets_to_inputs(x_train,input_names)
+        x_val   = tweets_to_inputs(x_val,input_names)
+
         return (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val)
 
+    def shuffle_and_split_padded(self, input_names=None):
+        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = self.shuffle_and_split(input_names)
+        return (self.pad_tweets(x_train), y_train, x_orig_train), (self.pad_tweets(x_val), y_val, x_orig_val)
 
-    def shuffle_and_split_padded(self):
-        (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val) = self.shuffle_and_split()
-        x_train = sequence.pad_sequences(x_train, maxlen=self.max_tweet_length, value=self.vocabulary.word_to_id['<pad>'] )
-        x_val   = sequence.pad_sequences(x_val,   maxlen=self.max_tweet_length, value=self.vocabulary.word_to_id['<pad>'] )
-        return (x_train, y_train, x_orig_train), (x_val, y_val, x_orig_val)
+    def test_tweets(self, input_names=None):
+        return tweets_to_inputs(self._test_tweets,input_names)
 
+    def test_tweets_padded(self, input_names=None):
+        return self.pad_tweets(self.test_tweets(input_names))
 
-    def test_tweets_padded(self):
-        return sequence.pad_sequences(self.test_tweets, maxlen=self.max_tweet_length, value=self.vocabulary.word_to_id['<pad>'])
+    def pad_tweets(self,tweets):
+        if isinstance(tweets,dict):
+            padded_tweets = {}
+            for name in tweets:
+                padded_tweets[name] = sequence.pad_sequences(tweets[name],
+                                                             maxlen=self.max_tweet_length,
+                                                             value=self.vocabulary.word_to_id['<pad>'])
+        else:
+            padded_tweets = sequence.pad_sequences(tweets,
+                                                   maxlen=self.max_tweet_length,
+                                                   value=self.vocabulary.word_to_id['<pad>'])
+        return padded_tweets
+
+def reverse_tweets(tweets):
+    return [tweet[::-1] for tweet in tweets]
+
+def tweets_to_inputs(tweets,input_names):
+    if input_names is not None:
+        if (len(input_names) == 2
+            and input_names[0] == 'forward_input'
+            and input_names[1] == 'backward_input'):
+            inputs = {'forward_input': tweets,
+                      'backward_input': reverse_tweets(tweets)}
+        else:
+            raise
+    else:
+        inputs = tweets
+    return inputs
+

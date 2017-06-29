@@ -4,7 +4,6 @@ from keras.models import Sequential
 # Utilities for loading and saving a Keras sequential model
 
 def save_model(model,model_save_path):
-    assert isinstance(model, Sequential)
     print("Saving model...")
     model_json = model.to_json()
     with open(model_save_path + ".json", "w") as json_file:
@@ -22,7 +21,5 @@ def load_model(model_json_file, model_h5_file):
     model.load_weights(model_h5_file)
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-    assert isinstance(model, Sequential)
 
     print("Loaded model from disk!")
