@@ -16,7 +16,7 @@ class SingleLSTM:
         model.add(Dropout(self.train_params["dropout"]))
         model.add(Dense(1, activation=self.train_params["activation"]))
 
-        return model, None
+        return model
 
 class BidirectionalLSTM:
     def __init__(self, params={}):
@@ -63,4 +63,4 @@ class DoubleConv:
         model.add(Dense(1))
         model.add(Activation('sigmoid'))
 
-        return model, None
+        return model

@@ -136,7 +136,8 @@ class PreprocessedDataset:
 
     def shuffle_and_split(self, input_names=None):
         """Create training data set"""
-        print("[TrainingDataset] Shuffling data...")
+        print("[TrainingDataset] Shuffling data %s..."
+              % ('for inputs [' + ', '.join(input_names) + ']') if input_names is not None else '')
         combined_training_dataset = list(
             zip(self.shuffled_original_train_tweets, self.shuffled_train_tweets, self.shuffled_train_sentiments))
         #random.shuffle(combined_training_dataset)
@@ -163,6 +164,8 @@ class PreprocessedDataset:
         return (self.pad_tweets(x_train), y_train, x_orig_train), (self.pad_tweets(x_val), y_val, x_orig_val)
 
     def test_tweets(self, input_names=None):
+        print("[TrainingDataset] Generating test data %s..."
+              % ('for inputs [' + ', '.join(input_names) + ']') if input_names is not None else '')
         return tweets_to_inputs(self._test_tweets,input_names)
 
     def test_tweets_padded(self, input_names=None):
@@ -185,14 +188,12 @@ def reverse_tweets(tweets):
     return [tweet[::-1] for tweet in tweets]
 
 def tweets_to_inputs(tweets,input_names):
-    if input_names is not None:
-        if (len(input_names) == 2
-            and input_names[0] == 'forward_input'
-            and input_names[1] == 'backward_input'):
-            inputs = {'forward_input': tweets,
-                      'backward_input': reverse_tweets(tweets)}
-        else:
-            raise
+    if (input_names is not None
+        and len(input_names) == 2
+        and input_names[0] == 'forward_input'
+        and input_names[1] == 'backward_input'):
+        inputs = {'forward_input': tweets,
+                  'backward_input': reverse_tweets(tweets)}
     else:
         inputs = tweets
     return inputs
