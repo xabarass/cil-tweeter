@@ -20,7 +20,7 @@ if azure_config:
     test_run = False
 elif local_config:
     # Test run parameters
-    test_run = False
+    test_run = True
 else:
     raise
 
@@ -51,7 +51,7 @@ if azure_config:
     test_run_data_ratio=1
 elif local_config:
     validation_split_ratio = 0.99
-    test_run_data_ratio=0.01
+    test_run_data_ratio=0.001
 else:
     raise
 
@@ -88,10 +88,10 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "corpus_name": "full.emb"}
 
 # Model parameter
-model_builder=Models.DoubleConv()
+model_builder=Models.BidirectionalLSTM()
 
 # Training parameters
-training_opt = {"epochs":1,
+training_opt = {"epochs":3,
                 "batch_size":64 }
 
 # Results output parameters
