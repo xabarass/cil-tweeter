@@ -78,9 +78,9 @@ KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
 # Evaluation - TODO: wrap model.fit with an evaluate method
 
 class ModelBuilder:
-    def __init__(self, preprocessed_dataset, vocabulary, word_embeddings_opt):
+    def __init__(self, preprocessed_dataset, preprocessor, word_embeddings_opt):
         self.preprocessed_dataset=preprocessed_dataset # TODO: to be changed to TwitterDataset
-        self.vocabulary=vocabulary
+        self.preprocessor=preprocessor
         self.word_embeddings_opt=word_embeddings_opt
         self._created_models = []
 
@@ -99,20 +99,20 @@ class ModelBuilder:
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
                 self.vocabulary, self.preprocessed_dataset,
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
-            embedding_layer = Embedding(self.vocabulary.word_count,
+            embedding_layer = Embedding(self.preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=self.preprocessed_dataset.max_tweet_length,
                                         trainable=self.word_embeddings_opt_param["trainable"])
 
         else:
-            embedding_layer = Embedding(self.vocabulary.word_count,
+            embedding_layer = Embedding(self.preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
                                         input_length=self.preprocessed_dataset.max_tweet_length,
                                         trainable=self.word_embeddings_opt_param["trainable"])
 
         print("Created Embedding layer - Word count %d, dimensions %d, max tweet length %d" %
-              (self.vocabulary.word_count, word_embeddings_opt_param["dim"], self.preprocessed_dataset.max_tweet_length))
+              (self.preprocessor.vocabulary.word_count, word_embeddings_opt_param["dim"], self.preprocessed_dataset.max_tweet_length))
 
         model.add(embedding_layer)
         model.add(LSTM(200))
@@ -145,7 +145,7 @@ class ModelBuilder:
                     print("\n***** Training samples sorted by weight *****\n")
                     for weight, i in ranked_weights:
                         print("\t{} :\t({})\t{}".format(weight, y[i], # TODO: Print original unpreprocessed strings
-                                                        ' '.join([self.vocabulary.id_to_word[id] for id in x[i]]) ) ) # FIXME: expect self.vocabulary to change to receiver.vocabulary
+                                                        ' '.join([self.preprocessor.vocabulary.id_to_word[id] for id in x[i]]) ) ) # FIXME: expect self.vocabulary to change to receiver.vocabulary
 
                 return fit(receiver, x, y, batch_size=batch_size, epochs=epochs, verbose=verbose, callbacks=callbacks,
                            validation_split=validation_split, validation_data=validation_data, shuffle=shuffle,
@@ -171,7 +171,7 @@ class Network:
     @classmethod
     def create_model(cls,
                      preprocessed_dataset,
-                     vocabulary,
+                     preprocessor,
                      word_embeddings_opt={},
                      model_builder=None):
 
@@ -182,22 +182,22 @@ class Network:
         word_embeddings_opt_param.update(word_embeddings_opt)
         if word_embeddings_opt_param["initializer"] in Network.word_embedding_models:
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
-                vocabulary, preprocessed_dataset,
+                preprocessor, preprocessed_dataset,
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
-            embedding_layer = Embedding(vocabulary.word_count,
+            embedding_layer = Embedding(preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])
 
         else:
-            embedding_layer = Embedding(vocabulary.word_count,
+            embedding_layer = Embedding(preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])
 
         print("Created Embedding layer - Word count %d, dimensions %d, max tweet length %d" %
-              (vocabulary.word_count, word_embeddings_opt_param["dim"], preprocessed_dataset.max_tweet_length))
+              (preprocessor.vocabulary.word_count, word_embeddings_opt_param["dim"], preprocessed_dataset.max_tweet_length))
 
         model=model_builder.get_model(embedding_layer)
 
@@ -215,11 +215,11 @@ class Network:
     @classmethod
     def create_adaboost_model(cls,
                               preprocessed_dataset,
-                              vocabulary,
+                              preprocessor,
                               word_embeddings_opt={}):
 
         model_builder= ModelBuilder(preprocessed_dataset=preprocessed_dataset,
-                                    vocabulary=vocabulary,
+                                    preprocessor=preprocessor,
                                     word_embeddings_opt=word_embeddings_opt)
 
         #evaluater=ModelEvaluater(model, model, x_val, y_val, result_epoch_file=None) # problem: model, x_val, y_val not accessible at this time
@@ -294,7 +294,7 @@ class Network:
 
     @classmethod
     def output_misclassified_samples(cls,
-                                     model, preprocessed_dataset, vocabulary,
+                                     model, preprocessed_dataset, preprocessor,
                                      misclassified_samples_file=None):
 
         def evaluate_misclassified_samples(x, y, x_orig, phase):
@@ -307,7 +307,7 @@ class Network:
                 if ((pred_y[i] > 0.5) and (y[i] == 0)) or \
                    ((pred_y[i] <= 0.5) and (y[i] == 1)):
                     misclassified_samples.append( ( 2*(pred_y[i]-0.5)*2*(y[i]-0.5), 2*(y[i]-0.5),
-                                                    x_orig[i], ' '.join([vocabulary.id_to_word[id] for id in
+                                                    x_orig[i], ' '.join([preprocessor.vocabulary.id_to_word[id] for id in
                                                                          (x[i] if not isinstance(x,dict) else x['forward_input'][i] )]) ) )
 
             misclassified_samples.sort()

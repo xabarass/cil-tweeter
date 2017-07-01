@@ -1,5 +1,4 @@
 from keras.models import model_from_json
-from keras.models import Sequential
 
 # Utilities for loading and saving a Keras sequential model
 

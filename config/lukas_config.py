@@ -56,30 +56,28 @@ else:
     raise
 
 
-# Vocabulary generation
-preprocessor_opt = { "remove_unknown_words": True}
+### Preprocessing options (token transformation/vocabulary generation)
+vocab_path_opt = { "vocab_path": vocab_path  }
 
-# TODO: Filter some of the very short and relatively rare words here <5-10 occurrences for length 3, <15-30 for length 2
 min_word_occurrence = 4
-def vocabulary_filter(word, occurrence):
+def final_vocabulary_filter(word, occurrence):
     return (len(word) > 3 and occurrence > min_word_occurrence) or \
            (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
            (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
            (len(word) == 1 and occurrence >=50*min_word_occurrence)
-vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
+final_vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
 
-vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
+def preprocessor_vocabulary_filter(word, occurrence):
+    return (len(word) > 3 and occurrence > min_word_occurrence) or \
+           (len(word) == 3 and occurrence >= 3*min_word_occurrence) or \
+           (len(word) == 2 and occurrence >= 100*min_word_occurrence) or \
+           (len(word) == 1 and occurrence >= 1000*min_word_occurrence)
 
+preprocessor_opt = { "remove_unknown_words": True,
+                     "final_vocabulary_filter": final_vocabulary_filter,
+                     "preprocessor_vocabulary_filter": preprocessor_vocabulary_filter}
 
-def hashtag_multiplier(word):
-    return 20 if word.startswith('#') else 1
-def vocabulary_generator_filter(word, occurrence):
-    return (len(word) > 3 and occurrence > hashtag_multiplier(word)*min_word_occurrence) or \
-           (len(word) == 3 and occurrence >= hashtag_multiplier(word)*3*min_word_occurrence) or \
-           (len(word) == 2 and occurrence >= hashtag_multiplier(word)*100*min_word_occurrence) or \
-           (len(word) == 1 and occurrence >= hashtag_multiplier(word)*1000*min_word_occurrence)
-
-vocabulary_generator_opt = { "vocabulary_generator_filter": vocabulary_generator_filter }
+### ML model options
 
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
@@ -87,8 +85,8 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "trainable": True,
                        "corpus_name": "full.emb"}
 
-# Model parameter
-model_builder=Models.BidirectionalLSTM()
+# Neural network parameter
+model_builder=Models.SingleLSTM()
 
 # Training parameters
 training_opt = {"epochs":3,

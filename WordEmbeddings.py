@@ -6,7 +6,7 @@ from pathlib import Path
 class Word2VecEmbeddings:
     """Create or load word embeddings"""
     def __init__(self,
-                 vocabulary, preprocessed_dataset,
+                 preprocessor, preprocessed_dataset,
                  word_embedding_dimensions, embedding_corpus_name):
         print("Generating word embeddings")
         word_embedding_model = None
@@ -18,7 +18,7 @@ class Word2VecEmbeddings:
                 print("Word embeddings loaded!")
 
         if not word_embedding_model:
-            min_word_occurrence = vocabulary.min_word_occurrence if hasattr(vocabulary, "min_word_occurrence") else 5
+            min_word_occurrence = preprocessor.vocabulary.min_word_occurrence if hasattr(preprocessor.vocabulary, "min_word_occurrence") else 5
             word_embedding_model = Word2Vec(preprocessed_dataset.all_preprocessed_tweets(), # preprocessed_dataset.all_tokenized_tweets(),
                                             size=word_embedding_dimensions,
                                             window=7,
@@ -32,8 +32,8 @@ class Word2VecEmbeddings:
         if embedding_corpus_name:
             word_embedding_model.save(embedding_corpus_name)
 
-        self.embedding_matrix = np.zeros((vocabulary.word_count, word_embedding_dimensions))
-        for word, id in vocabulary.word_to_id.items():
+        self.embedding_matrix = np.zeros((preprocessor.vocabulary.word_count, word_embedding_dimensions))
+        for word, id in preprocessor.vocabulary.word_to_id.items():
             if word in word_embedding_model.wv.vocab:
                 embedding_vector = word_embedding_model[word]
                 self.embedding_matrix[id] = embedding_vector

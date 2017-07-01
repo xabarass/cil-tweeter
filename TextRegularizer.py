@@ -186,8 +186,10 @@ class TextRegularizer:
     vocab_regularizing_functions = [_tag_number,
                                     _convert_hashtag]
 
-    def __init__(self, vocabulary):
-        bound_regularizing_functions=[ bind_vocabulary(regularizing_func, vocabulary)
+    def __init__(self, final_vocabulary, internal_vocabulary):
+        bound_regularizing_functions=[(bind_vocabulary(regularizing_func, final_vocabulary)
+                                       if regularizing_func != _convert_hashtag
+                                       else bind_vocabulary(regularizing_func, internal_vocabulary))
                                        for regularizing_func in TextRegularizer.vocab_regularizing_functions ]
 
         self.regularizing_functions = TextRegularizer.static_regularizing_functions + bound_regularizing_functions
