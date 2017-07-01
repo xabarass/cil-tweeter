@@ -13,7 +13,8 @@ class TwitterDataSet:
     def __init__(self,
                  positive_tweets=None,
                  negative_tweets=None,
-                 test_data=None):
+                 test_data=None,
+                 deduplicate_train_tweets=False):
 
         print("Loading TwitterDataSet...")
         # File paths
@@ -43,10 +44,16 @@ class TwitterDataSet:
 
         print("Loading tweets...")
         with open(self.pos_tw_path, 'r') as pos:
+            pos_tweet_set = set()
             for line in pos:
+                if deduplicate_train_tweets and (line in pos_tweet_set):
+                    continue
                 add_train_tweet(line, 1)
         with open(self.neg_tw_path, 'r') as neg:
+            neg_tweet_set = set()
             for line in neg:
+                if deduplicate_train_tweets and (line in neg_tweet_set):
+                    continue
                 add_train_tweet(line, 0)
         with open(self.test_data_path,'r') as tst:
             for line in tst:
