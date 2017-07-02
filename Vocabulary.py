@@ -264,7 +264,6 @@ class BasePreprocessor:
         """Replace every vocabulary integer id by token"""
         return self.final_vocabulary.map_id_seq_to_tweet(tweet_id_seq=tweet_id_seq)
 
-
 class LexicalPreprocessor(BasePreprocessor):
     def __init__(self, word_to_occurrence_full, final_vocabulary_filter, remove_unknown_words=False):
         super(LexicalPreprocessor,self).__init__(final_vocabulary_filter=final_vocabulary_filter, remove_unknown_words=remove_unknown_words)

@@ -30,25 +30,32 @@ date_pattern=re.compile(
         re.M | re.DOTALL
     )
 
-def _convert_sad_emoticons(word):
+def _convert_sad_emoticons(word, word_to_occurrence=None):
     if sad_emoticon_pattern.match(word):
         return True, [TextRegularizer.tags['sad_emoticon']]
     else:
         return False, None
 
-def _convert_happy_emoticons(word):
+def _convert_happy_emoticons(word, word_to_occurrence=None):
     if happy_emoticon_pattern.match(word):
         return True, [TextRegularizer.tags['happy_emoticon']]
     else:
         return False, None
 
-def _convert_haha(word):
+def _convert_haha(word, word_to_occurrence=None):
     if haha_pattern.match(word):
-        return True, [TextRegularizer.tags['haha']]
+        if(len(word)<6):
+            return True, [TextRegularizer.tags['haha1']]
+        elif (len(word)<10):
+            return True, [TextRegularizer.tags['haha2']]
+        elif (len(word) < 18):
+            return True, [TextRegularizer.tags['haha3']]
+        else:
+            return True, [TextRegularizer.tags['haha4']]
     else:
         return False, None
 
-def _convert_happy_birthday(word):
+def _convert_happy_birthday(word, word_to_occurrence=None):
     if happybirthday_pattern.match(word):
         return True, [TextRegularizer.tags['happybirthday']]
     else:
@@ -60,7 +67,6 @@ def _convert_hashtag(word, word_to_occurrence):
         match_found=False
 
         find_subwords_cache = {}
-
 
         # Find optimal tokenization of big_word[from_index:end_index] of maximum size max_len
         # Return success status, tokenization, new_max_len, score
@@ -156,10 +162,10 @@ def _convert_hashtag(word, word_to_occurrence):
 
 
         if success_flag:
-            res_tokenization=[TextRegularizer.tags['hashtag_begin']];
-            res_tokenization+=tokenization;
-            res_tokenization.append(TextRegularizer.tags['hashtag_end'])
-            return True, res_tokenization
+            # res_tokenization=[TextRegularizer.tags['hashtag_begin']];
+            # res_tokenization+=tokenization;
+            # res_tokenization.append(TextRegularizer.tags['hashtag_end'])
+            return True, tokenization
         else:
             return False, None
     else:
@@ -180,13 +186,13 @@ def bind_vocabulary(regularizing_func, vocabulary):
 
 
 class TextRegularizer:
-    static_regularizing_functions = [_convert_sad_emoticons,
-                                     _convert_happy_emoticons,
-                                     _convert_haha,
-                                     _convert_happy_birthday]
+    static_regularizing_functions = [_convert_haha]
 
-    vocab_regularizing_functions = [_tag_number,
-                                    _convert_hashtag]
+    vocab_regularizing_functions = [_convert_hashtag,
+                                    _tag_number,
+                                    _convert_happy_birthday,
+                                    _convert_happy_emoticons,
+                                    _convert_sad_emoticons]
 
     def __init__(self, final_vocabulary, internal_vocabulary):
         bound_regularizing_functions=[(bind_vocabulary(regularizing_func, final_vocabulary)
@@ -212,7 +218,10 @@ class TextRegularizer:
 
     tags = { 'sad_emoticon':   '<:(>',
              'happy_emoticon': '<:)>',
-             'haha':           '<haha>',
+             'haha1':           '<haha1>',
+             'haha2':           '<haha2>',
+             'haha3':           '<haha3>',
+             'haha4':           '<haha4>',
              'happybirthday':  '<happybirthday>',
              'time':           '<time>',
              'date':           '<date>',
