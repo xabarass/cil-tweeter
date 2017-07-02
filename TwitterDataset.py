@@ -110,7 +110,6 @@ class PreprocessedDataset:
 
         print("[TrainingDataset] Max tweet length: %d" % self.max_tweet_length)
 
-
         self.shuffled_preprocessed_train_tweets = []
         for id_seq in tqdm(self.shuffled_train_tweets,desc="Training tweets: generate tokens from id seq"):
             self.shuffled_preprocessed_train_tweets.append( preprocessor.map_id_seq_to_tweet(id_seq) )

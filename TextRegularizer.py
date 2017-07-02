@@ -156,7 +156,10 @@ def _convert_hashtag(word, word_to_occurrence):
 
 
         if success_flag:
-            return True, tokenization
+            res_tokenization=[TextRegularizer.tags['hashtag_begin']];
+            res_tokenization+=tokenization;
+            res_tokenization.append(TextRegularizer.tags['hashtag_end'])
+            return True, res_tokenization
         else:
             return False, None
     else:
@@ -177,10 +180,13 @@ def bind_vocabulary(regularizing_func, vocabulary):
 
 
 class TextRegularizer:
+    static_regularizing_functions = [_convert_sad_emoticons,
+                                     _convert_happy_emoticons,
+                                     _convert_haha,
+                                     _convert_happy_birthday]
 
-    static_regularizing_functions = [_convert_haha]
-
-    vocab_regularizing_functions = [_convert_hashtag]
+    vocab_regularizing_functions = [_tag_number,
+                                    _convert_hashtag]
 
     def __init__(self, final_vocabulary, internal_vocabulary):
         bound_regularizing_functions=[(bind_vocabulary(regularizing_func, final_vocabulary)
@@ -210,7 +216,9 @@ class TextRegularizer:
              'happybirthday':  '<happybirthday>',
              'time':           '<time>',
              'date':           '<date>',
-             'number':         '<number>' }
+             'number':         '<number>',
+             'hashtag_begin':  '<hashtag_begin>',
+             'hashtag_end':    '<hashtag_end>'}
 
     @classmethod
     def get_special_words(cls):
