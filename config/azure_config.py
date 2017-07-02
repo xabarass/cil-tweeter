@@ -46,16 +46,16 @@ vocab_path_opt = { "vocab_path": vocab_path  }
 min_word_occurrence = 4
 def final_vocabulary_filter(word, occurrence):
     return (len(word) > 3 and occurrence > min_word_occurrence) or \
-           (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
-           (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
-           (len(word) == 1 and occurrence >=50*min_word_occurrence)
+           (len(word) == 3 and occurrence >= min_word_occurrence) or \
+           (len(word) == 2 and occurrence >= min_word_occurrence)  or \
+           (len(word) == 1 and occurrence >=min_word_occurrence)
 final_vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
 
 def preprocessor_vocabulary_filter(word, occurrence):
     return (len(word) > 3 and occurrence > min_word_occurrence) or \
-           (len(word) == 3 and occurrence >= 3*min_word_occurrence) or \
-           (len(word) == 2 and occurrence >= 100*min_word_occurrence) or \
-           (len(word) == 1 and occurrence >= 1000*min_word_occurrence)
+           (len(word) == 3 and occurrence >= min_word_occurrence) or \
+           (len(word) == 2 and occurrence >= min_word_occurrence) or \
+           (len(word) == 1 and occurrence >= min_word_occurrence)
 
 preprocessor_opt = { "remove_unknown_words": True,
                      "final_vocabulary_filter": final_vocabulary_filter,
