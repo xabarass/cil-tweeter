@@ -551,7 +551,8 @@ class AdaptiveAdaBoostModel:
                          trivially_preprocessed_dataset,
                          preprocessor_factory,
                          word_embeddings_opt={}, # result_epoch_file=None
-                         training_opt={}):
+                         training_opt={},
+                         adaboost_opt={}):
 
         model_builder= AdaptiveKerasModelBuilder(
                            twitter_dataset=twitter_dataset,
@@ -561,6 +562,10 @@ class AdaptiveAdaBoostModel:
 
         training_opt_param = {"epochs":4, "batch_size":64}
         training_opt_param.update(training_opt)
+
+        adaboost_opt_param = { "algorithm": "SAMME.R",
+                               "n_estimators": 5}
+        adaboost_opt_param.update(adaboost_opt)
 
         # evaluater=ModelEvaluater(model, x_val, y_val)
         # callbacks=[evaluater] # TODO: using boosting state
@@ -574,8 +579,7 @@ class AdaptiveAdaBoostModel:
                                         )
 
         adaboost_model = AdaptiveAdaBoostClassifier(sklearn_model,
-                                                    algorithm="SAMME.R",
-                                                    n_estimators=5)
+                                                    **adaboost_opt_param)
 
         # Store reference to AdaBoost instance in keras models to access AdaBoost internals at model fit time
         model_builder.register_adaboost(adaboost_model)
@@ -588,6 +592,7 @@ class StaticAdaBoostModel:
                      preprocessed_dataset,
                      word_embeddings_opt={},
                      training_opt={},
+                     adaboost_opt={},
                      model_builder=None):
         keras_model_factory = StaticKerasModelBuilder(
             preprocessed_dataset=preprocessed_dataset,
@@ -597,13 +602,17 @@ class StaticAdaBoostModel:
         training_opt_param = {"epochs": 4, "batch_size": 64}
         training_opt_param.update(training_opt)
 
+        adaboost_opt_param = { "algorithm": "SAMME.R",
+                               "n_estimators": 5}
+        adaboost_opt_param.update(adaboost_opt)
+
+
         sklearn_model = KerasClassifier(build_fn=keras_model_factory,
                                         verbose=1, **training_opt_param  # , callbacks=callbacks
                                         )
 
         adaboost_model = AdaptiveAdaBoostClassifier(sklearn_model,
-                                                    algorithm="SAMME.R",
-                                                    n_estimators=5)
+                                                    **adaboost_opt_param)
 
         # Store reference to AdaBoost instance in keras models to access AdaBoost internals at model fit time
         keras_model_factory.register_adaboost(adaboost_model)
