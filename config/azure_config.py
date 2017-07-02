@@ -35,7 +35,7 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 
 # Dataset parameters (size of validation data set)
 if azure_config:
-    validation_split_ratio=0.999
+    validation_split_ratio=0.9999
     test_run_data_ratio=1
 else:
     raise
@@ -64,7 +64,7 @@ preprocessor_opt = { "remove_unknown_words": True,
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
-                       "trainable": False,
+                       "trainable": True,
                        "corpus_name": "full.emb"}
 
 # Neural network parameter

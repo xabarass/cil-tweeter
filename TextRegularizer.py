@@ -10,6 +10,7 @@ happy_emoticon_pattern=re.compile(
         re.M | re.DOTALL
     )
 
+
 haha_pattern=re.compile(
         r"a+h+a+.{0,3}|h+a+h.{0,3}|e+h+e+.{0,3}|h+e+h.{0,3}",
         re.M | re.DOTALL
@@ -32,12 +33,14 @@ date_pattern=re.compile(
 
 def _convert_sad_emoticons(word, word_to_occurrence=None):
     if (not word in word_to_occurrence) and sad_emoticon_pattern.match(word):
+
         return True, [TextRegularizer.tags['sad_emoticon']]
     else:
         return False, None
 
 def _convert_happy_emoticons(word, word_to_occurrence=None):
     if (not word in word_to_occurrence) and happy_emoticon_pattern.match(word):
+        print("happy: {}".format(word))
         return True, [TextRegularizer.tags['happy_emoticon']]
     else:
         return False, None
@@ -190,9 +193,7 @@ class TextRegularizer:
 
     vocab_regularizing_functions = [_convert_hashtag,
                                     _tag_number,
-                                    _convert_happy_birthday,
-                                    _convert_happy_emoticons,
-                                    _convert_sad_emoticons]
+                                    _convert_happy_birthday]
 
     def __init__(self, final_vocabulary, internal_vocabulary):
         bound_regularizing_functions=[(bind_vocabulary(regularizing_func, final_vocabulary)
