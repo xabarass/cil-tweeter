@@ -31,13 +31,13 @@ date_pattern=re.compile(
     )
 
 def _convert_sad_emoticons(word, word_to_occurrence=None):
-    if sad_emoticon_pattern.match(word):
+    if (not word in word_to_occurrence) and sad_emoticon_pattern.match(word):
         return True, [TextRegularizer.tags['sad_emoticon']]
     else:
         return False, None
 
 def _convert_happy_emoticons(word, word_to_occurrence=None):
-    if happy_emoticon_pattern.match(word):
+    if (not word in word_to_occurrence) and happy_emoticon_pattern.match(word):
         return True, [TextRegularizer.tags['happy_emoticon']]
     else:
         return False, None
@@ -56,7 +56,7 @@ def _convert_haha(word, word_to_occurrence=None):
         return False, None
 
 def _convert_happy_birthday(word, word_to_occurrence=None):
-    if happybirthday_pattern.match(word):
+    if (not word in word_to_occurrence) and happybirthday_pattern.match(word):
         return True, [TextRegularizer.tags['happybirthday']]
     else:
         return False, None
