@@ -45,19 +45,24 @@ class TwitterDataSet:
         print("Loading tweets...")
         with open(self.pos_tw_path, 'r') as pos:
             pos_tweet_set = set()
-            for line in pos:
+            for i, line in enumerate(pos): # Note: i could be used to store subsequent permutations
                 if deduplicate_train_tweets and (line in pos_tweet_set):
                     continue
                 add_train_tweet(line, 1)
+                pos_tweet_set.add(line)
         with open(self.neg_tw_path, 'r') as neg:
             neg_tweet_set = set()
-            for line in neg:
+            for i, line in enumerate(neg): # Note: i could be used to store subsequent permutations
                 if deduplicate_train_tweets and (line in neg_tweet_set):
                     continue
                 add_train_tweet(line, 0)
+                neg_tweet_set.add(line)
         with open(self.test_data_path,'r') as tst:
             for line in tst:
                 add_test_tweet(line)
+
+        if deduplicate_train_tweets:
+            print("[TwitterDataset] Found %d positive and %d negative tweets" % (len(pos_tweet_set),len(neg_tweet_set)))
 
     # TODO: possibly move this elsewhere
     def create_preprocessed_dataset(self, preprocessor, training_validation_split_ratio):
@@ -82,6 +87,7 @@ class PreprocessedDataset:
         if not config.test_run:
             self.shuffled_original_train_tweets[:] = twitter_dataset.original_train_tweets[:]
             self.shuffled_train_sentiments[:] = twitter_dataset.train_sentiments[:]
+            self.original_test_tweets = twitter_dataset.original_test_tweets
         else:
             combined_training_dataset = list(
                 zip(twitter_dataset.original_train_tweets[:], twitter_dataset.train_sentiments[:]))
@@ -90,13 +96,13 @@ class PreprocessedDataset:
             combined_training_dataset = combined_training_dataset[
                                         :int(config.test_run_data_ratio * len(combined_training_dataset))]
             self.shuffled_original_train_tweets[:], self.shuffled_train_sentiments[:] = zip(*combined_training_dataset)
+            self.original_test_tweets = twitter_dataset.original_test_tweets[:int(config.test_run_test_data_ratio *
+                                                                                  len(twitter_dataset.original_test_tweets))]
 
         print("[TrainingDataset] Preprocessing training and test tweets...")
         self.shuffled_train_tweets = []
         for tweet in tqdm(self.shuffled_original_train_tweets, desc="Training tweets"):
             self.shuffled_train_tweets.append(preprocessor.preprocess_and_map_tweet_to_id_seq(tweet))
-
-        self.original_test_tweets = twitter_dataset.original_test_tweets
 
         self._test_tweets = []
         for tweet in tqdm(self.original_test_tweets, desc="Test tweets"):
@@ -110,21 +116,31 @@ class PreprocessedDataset:
 
         print("[TrainingDataset] Max tweet length: %d" % self.max_tweet_length)
 
-
         self.shuffled_preprocessed_train_tweets = []
-        for id_seq in tqdm(self.shuffled_train_tweets,desc="Training tweets: generate tokens from id seq"):
-            self.shuffled_preprocessed_train_tweets.append( preprocessor.map_id_seq_to_tweet(id_seq) )
+        for id_seq in tqdm(self.shuffled_train_tweets, desc="Training tweets: generate tokens from id seq"):
+            self.shuffled_preprocessed_train_tweets.append(self.preprocessor.map_id_seq_to_tweet(id_seq))
 
         self.preprocessed_test_tweets = []
         for id_seq in tqdm(self._test_tweets, desc="Test tweets: generate tokens from id seq"):
-            self.preprocessed_test_tweets.append( preprocessor.map_id_seq_to_tweet(id_seq) )
+            self.preprocessed_test_tweets.append(self.preprocessor.map_id_seq_to_tweet(id_seq))
 
-        self.all_preprocessed_tweets_randomized = self.shuffled_preprocessed_train_tweets + self.preprocessed_test_tweets
-
-    def all_preprocessed_tweets(self):
+    def weighted_preprocessed_tweets(self, test_weight=None):
         #random.shuffle(self.all_preprocessed_tweets_randomized)
-        self.all_preprocessed_tweets_randomized = numpy_random_shuffle(self.all_preprocessed_tweets_randomized)
-        return self.all_preprocessed_tweets_randomized
+        return numpy_random_shuffle(self.shuffled_preprocessed_train_tweets + (self.preprocessed_test_tweets
+                                                                               if (test_weight is None) else
+                                                                               self.preprocessed_test_tweets * test_weight) )
+
+    def weighted_preprocessed_tweets(self, preprocessed_train_tweets, sample_weight, test_weight=None):
+        print("[PreprocessedDataset] Getting weighted preprocessed tweets using supplied train tweets...")
+
+        shuffled_preprocessed_train_tweets = []
+        for tweet, weight in zip(preprocessed_train_tweets, sample_weight):
+            shuffled_preprocessed_train_tweets += tweet * int(np.ceil(weight))
+
+        #random.shuffle(self.all_preprocessed_tweets_randomized)
+        return numpy_random_shuffle(shuffled_preprocessed_train_tweets +  (self.preprocessed_test_tweets
+                                                                           if (test_weight is None) else
+                                                                           self.preprocessed_test_tweets * test_weight))
 
     def all_tokenized_tweets(self):
         tokenized_tweets_randomized  = [self.preprocessor.lexical_preprocessing_tweet(tweet)
@@ -199,3 +215,29 @@ def tweets_to_inputs(tweets,input_names):
         inputs = tweets
     return inputs
 
+def pad_tweets(tweets, max_tweet_length, preprocessor):
+    if isinstance(tweets, dict):
+        padded_tweets = {}
+        for name in tweets:
+            padded_tweets[name] = sequence.pad_sequences(tweets[name],
+                                                         maxlen=max_tweet_length,
+                                                         value=preprocessor.vocabulary.word_to_id['<pad>'])
+    else:
+        padded_tweets = sequence.pad_sequences(tweets,
+                                               maxlen=max_tweet_length,
+                                               value=preprocessor.vocabulary.word_to_id['<pad>'])
+    return padded_tweets
+
+def unpad_tweets(tweets, preprocessor):
+    if isinstance(tweets, dict):
+        unpadded_tweets = {}
+        for name in tweets:
+            unpadded_tweets[name] = sequence.pad_sequences(tweets[name],
+                                                         maxlen=max_tweet_length,
+                                                         value=preprocessor.vocabulary.word_to_id['<pad>'])
+    else:
+        unpadded_tweets = [unpad_tweet(tweet) for tweet in tweets]
+    return unpadded_tweets
+
+def unpad_tweet(tweet, preprocessor):
+    return [word for word in filter(lambda w: w != preprocessor.preprocessor.vocabulary['<pad>'],tweet)]

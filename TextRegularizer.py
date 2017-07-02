@@ -178,9 +178,11 @@ def bind_vocabulary(regularizing_func, vocabulary):
 
 class TextRegularizer:
 
-    static_regularizing_functions = [_convert_sad_emoticons,
-                                     _convert_happy_emoticons,
-                                     _convert_haha,
+
+    #_convert_sad_emoticons,
+    #_convert_happy_emoticons,
+
+    static_regularizing_functions = [_convert_haha,
                                      _convert_happy_birthday]
 
     vocab_regularizing_functions = [_tag_number,

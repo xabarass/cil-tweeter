@@ -61,7 +61,7 @@ vocabulary_generator_opt = { "vocabulary_generator_filter": vocabulary_generator
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
                        "trainable": False,
-                       "corpus_name": "full.emb"}
+                       "corpus_name": None}
 
 # Model parameter
 model_builder=Models.BidirectionalLSTM({"lstm_units":250})
