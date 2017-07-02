@@ -12,7 +12,7 @@ class SingleLSTM:
     def get_model(self, embedding_layer):
         model = Sequential()
         model.add(embedding_layer)
-        model.add(LSTM(self.train_params["lstm_units"]))
+        model.add(LSTM(self.train_params["lstm_units"], implementation=2))
         model.add(Dropout(self.train_params["dropout"]))
         model.add(Dense(1, activation=self.train_params["activation"]))
 

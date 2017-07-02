@@ -8,6 +8,18 @@ user_name = getpass.getuser()
 
 if user_name in {"nforster"}:
     azure_config = True
+else:
+    raise
+
+# TBD: prepend output directory to output files
+#def output_path_prefix(file_name):
+#    file_path = "runs"
+
+if azure_config:
+    # Test run parameters
+    test_run = False
+else:
+    raise
 
 # Data set file paths
 
@@ -23,39 +35,33 @@ test_data='./twitter-datasets/cleared_test_data.txt'
 
 # Dataset parameters (size of validation data set)
 if azure_config:
-    print("Running Azure config!")
     validation_split_ratio=0.999
-else:
-    raise
-
-if azure_config:
-    # Test run parameters
-    test_run = False
     test_run_data_ratio=1
 else:
     raise
 
-# Vocabulary generation
-preprocessor_opt = { "remove_unknown_words": True}
+### Preprocessing options (token transformation/vocabulary generation)
+vocab_path_opt = { "vocab_path": vocab_path  }
 
 min_word_occurrence = 4
-def vocabulary_filter(word, occurrence):
-    return occurrence > min_word_occurrence
-           #(len(word) > 3 and occurrence > min_word_occurrence) or \
-           #(len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
-           #(len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
-           #(len(word) == 1 and occurrence >=50*min_word_occurrence)
-vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
+def final_vocabulary_filter(word, occurrence):
+    return (len(word) > 3 and occurrence > min_word_occurrence) or \
+           (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
+           (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
+           (len(word) == 1 and occurrence >=50*min_word_occurrence)
+final_vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
 
-vocabulary_opt = { "vocabulary_filter": vocabulary_filter }
-
-def vocabulary_generator_filter(word, occurrence):
-    return (len(word) > 3  and occurrence > min_word_occurrence) or \
+def preprocessor_vocabulary_filter(word, occurrence):
+    return (len(word) > 3 and occurrence > min_word_occurrence) or \
            (len(word) == 3 and occurrence >= 3*min_word_occurrence) or \
            (len(word) == 2 and occurrence >= 100*min_word_occurrence) or \
            (len(word) == 1 and occurrence >= 1000*min_word_occurrence)
 
-vocabulary_generator_opt = { "vocabulary_generator_filter": vocabulary_generator_filter }
+preprocessor_opt = { "remove_unknown_words": True,
+                     "final_vocabulary_filter": final_vocabulary_filter,
+                     "preprocessor_vocabulary_filter": preprocessor_vocabulary_filter}
+
+### ML model options
 
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
@@ -63,8 +69,8 @@ word_embeddings_opt = {"initializer": "word2vec",
                        "trainable": False,
                        "corpus_name": "full.emb"}
 
-# Model parameter
-model_builder=Models.BidirectionalLSTM({"lstm_units":250})
+# Neural network parameter
+model_builder=Models.SingleLSTM({"lstm_units":250})
 
 # Training parameters
 training_opt = {"epochs":3,
@@ -77,4 +83,3 @@ misclassified_samples_file = 'misclassified_samples/misclassified_{}_samples'
 # Load model parameters
 model_save_path = "model"
 
-email="milanpandurov@gmail.com"
