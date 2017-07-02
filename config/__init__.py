@@ -25,7 +25,8 @@ def _make_file_path(path):
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     return file_path
 
-word_embeddings_opt["corpus_name"] = _make_file_path( word_embeddings_opt["corpus_name"] )
+if "corpus_name" in word_embeddings_opt and word_embeddings_opt["corpus_name"] is not None:
+    word_embeddings_opt["corpus_name"] = _make_file_path( word_embeddings_opt["corpus_name"] )
 
 result_epoch_file =                  _make_file_path( ('-e{}_' + timestamp + '.').join( result_file.split('.') ) )
 result_file =                        _make_file_path( ('_' + timestamp + '.').join( result_file.split('.') ) )

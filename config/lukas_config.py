@@ -43,7 +43,7 @@ else:
     raise
 
 test_vocab_path='./twitter-datasets/test_vocab.txt'
-test_data='./twitter-datasets/cleared_test_data.txt'
+test_data = './twitter-datasets/cleared_test_data.txt'
 
 # Dataset parameters (size of validation data set)
 if azure_config:
@@ -51,7 +51,8 @@ if azure_config:
     test_run_data_ratio=1
 elif local_config:
     validation_split_ratio = 0.99
-    test_run_data_ratio=0.001
+    test_run_data_ratio=0.5
+    test_run_test_data_ratio=0.01
 else:
     raise
 
@@ -82,8 +83,8 @@ preprocessor_opt = { "remove_unknown_words": True,
 # Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
-                       "trainable": True,
-                       "corpus_name": "full.emb"}
+                       "trainable": False,
+                       "corpus_name": None}
 
 # Neural network parameter
 model_builder=Models.SingleLSTM()

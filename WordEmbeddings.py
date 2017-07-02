@@ -6,8 +6,12 @@ from pathlib import Path
 class Word2VecEmbeddings:
     """Create or load word embeddings"""
     def __init__(self,
-                 preprocessor, preprocessed_dataset,
-                 word_embedding_dimensions, embedding_corpus_name):
+                 preprocessor,
+                 preprocessed_tweets,
+                 word_embedding_dimensions,
+                 embedding_corpus_name):
+        preprocessor
+
         print("Generating word embeddings")
         word_embedding_model = None
 
@@ -18,8 +22,8 @@ class Word2VecEmbeddings:
                 print("Word embeddings loaded!")
 
         if not word_embedding_model:
-            min_word_occurrence = preprocessor.vocabulary.min_word_occurrence if hasattr(preprocessor.vocabulary, "min_word_occurrence") else 5
-            word_embedding_model = Word2Vec(preprocessed_dataset.all_preprocessed_tweets(), # preprocessed_dataset.all_tokenized_tweets(),
+            min_word_occurrence = preprocessor.vocabulary.min_word_occurrence
+            word_embedding_model = Word2Vec(preprocessed_tweets, # preprocessed_dataset.all_tokenized_tweets(),
                                             size=word_embedding_dimensions,
                                             window=7,
                                             min_count=min_word_occurrence,

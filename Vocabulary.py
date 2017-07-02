@@ -46,8 +46,6 @@ class Vocabulary:
 
         if hasattr(preprocessor.final_vocabulary_filter, "min_word_occurrence"):
             self.min_word_occurrence = preprocessor.final_vocabulary_filter.min_word_occurrence
-        else:
-            raise
 
         self.word_to_id, self.word_to_occurrence = create_filtered_vocabulary(preprocessed_word_to_occurrence,
                                                                               preprocessor.get_special_symbols(),
@@ -76,6 +74,13 @@ class Vocabulary:
     @property
     def word_count(self):
         return len(self.word_to_id)
+
+    @property
+    def total_token_count(self):
+        total_num_tokens = 0
+        for occurrence in self.word_to_occurrence.values():
+            total_num_tokens += occurrence
+        return total_num_tokens
 
     def map_tweet_to_id_seq(self, tweet_token_seq):
         """Replace every token by vocabulary integer id"""
@@ -252,7 +257,8 @@ class BasePreprocessor:
 
     def preprocess_and_map_tweet_to_id_seq(self, tweet):
         """Preprocess tweet with lexical/stemming/filtering phase and replace every token by vocabulary integer id"""
-        assert isinstance(tweet, str)
+        if not isinstance(tweet, str):
+            raise
         token_seq = self.preprocess_tweet(tweet)
         return self.final_vocabulary.map_tweet_to_id_seq(token_seq)
 
@@ -281,7 +287,7 @@ class LexicalPreprocessor(BasePreprocessor):
         return []
 
     def initial_pass_vocab(self, word):
-        return self.secondary_preprocessing_tweet(word)
+        return self.secondary_preprocessing_tweet([word])
 
     @classmethod
     def lexical_preprocessing_tweet(cls, tweet):
