@@ -47,7 +47,7 @@ test_data = './twitter-datasets/cleared_test_data.txt'
 
 # Dataset parameters (size of validation data set)
 if azure_config:
-    validation_split_ratio=0.99
+    validation_split_ratio=0.999
     test_run_data_ratio=1
 elif local_config:
     validation_split_ratio = 0.99
@@ -88,7 +88,12 @@ word_embeddings_opt = {"initializer": "word2vec",
 
 # Neural network parameter
 model_builder=Models.SingleLSTM()
-ensemble_model_builder=Models.SingleLSTM()
+
+ensemble_model_builder=Models.DoubleConv()
+
+# Ensemble parameters
+adaboost_opt = {"algorithm": "SAMME.R",
+                "n_estimators": 15}
 
 # Training parameters
 training_opt = {"epochs":3,

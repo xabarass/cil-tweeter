@@ -75,6 +75,7 @@ def static_adaboost_model():
                           preprocessed_dataset=preprocessed_dataset,
                           word_embeddings_opt=config.word_embeddings_opt,
                           training_opt=config.training_opt,
+                          adaboost_opt=config.adaboost_opt,
                           model_builder=config.ensemble_model_builder)
 
     print("Train sklearn model...")
@@ -123,7 +124,8 @@ def adaptive_adaboost_model():
                           trivially_preprocessed_dataset=trivially_preprocessed_dataset,
                           preprocessor_factory=preprocessor_factory,
                           word_embeddings_opt=config.word_embeddings_opt,
-                          training_opt = config.training_opt)
+                          training_opt = config.training_opt,
+                          adaboost_opt=config.adaboost_opt)
 
     print("Train sklearn model...")
     AdaBoostModel.train(model=model,
