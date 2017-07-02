@@ -51,7 +51,7 @@ if azure_config:
     test_run_data_ratio=1
 elif local_config:
     validation_split_ratio = 0.99
-    test_run_data_ratio=0.5
+    test_run_data_ratio=0.02
     test_run_test_data_ratio=0.01
 else:
     raise
@@ -88,6 +88,7 @@ word_embeddings_opt = {"initializer": "word2vec",
 
 # Neural network parameter
 model_builder=Models.SingleLSTM()
+ensemble_model_builder=Models.SingleLSTM()
 
 # Training parameters
 training_opt = {"epochs":3,

@@ -124,7 +124,7 @@ class PreprocessedDataset:
         for id_seq in tqdm(self._test_tweets, desc="Test tweets: generate tokens from id seq"):
             self.preprocessed_test_tweets.append(self.preprocessor.map_id_seq_to_tweet(id_seq))
 
-    def weighted_preprocessed_tweets(self, test_weight=None):
+    def all_preprocessed_tweets_weighted(self, test_weight=None):
         #random.shuffle(self.all_preprocessed_tweets_randomized)
         return numpy_random_shuffle(self.shuffled_preprocessed_train_tweets + (self.preprocessed_test_tweets
                                                                                if (test_weight is None) else

@@ -6,7 +6,7 @@ from TwitterDataset import TwitterDataSet
 
 from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor
 
-from NeuralNetwork import Network, AdaBoostModel
+from NeuralNetwork import Network, AdaBoostModel, StaticAdaBoostModel, AdaptiveAdaBoostModel
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -53,15 +53,56 @@ def keras_model():
                     preprocessed_dataset=preprocessed_dataset,
                     prediction_file=config.result_file)
 
+def static_adaboost_model():
+    print("Starting static AdaBoost sklearn_model...")
 
-def sklearn_model():
-    print("Starting sklearn_model...")
+    print("Loading tweets...")
+    twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
+                                     negative_tweets=config.negative_tweets,
+                                     test_data=config.test_data)
+
+    print("Creating vocabulary...")
+    word_to_occurrence_full = read_vocabulary_from_file(**config.vocab_path_opt)
+
+    preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    #preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+
+    print("Preprocessing training data set...")
+    preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)
+
+    print("Create static sklearn AdaBoost model...")
+    model = StaticAdaBoostModel.create_model(
+                          preprocessed_dataset=preprocessed_dataset,
+                          word_embeddings_opt=config.word_embeddings_opt,
+                          training_opt=config.training_opt,
+                          model_builder=config.ensemble_model_builder)
+
+    print("Train sklearn model...")
+    AdaBoostModel.train(model=model,
+                        preprocessed_dataset=preprocessed_dataset)
+
+    # print("Output misclassified samples...")
+    # Network.output_misclassified_samples(model=model,
+    #                                      preprocessed_dataset=trivially_preprocessed_dataset,
+    #                                      preprocessor=trivial_preprocessor,
+    #                                      misclassified_samples_file=config.misclassified_samples_file)
+
+    print("Output predictions...")
+    print("\tWriting to: {}".format(config.result_file))
+    AdaBoostModel.predict(model=model,
+                    preprocessed_dataset=preprocessed_dataset,
+                    prediction_file=config.result_file)
+
+
+
+def adaptive_adaboost_model():
+    print("Starting adaptive AdaBoost sklearn_model...")
 
     print("Loading tweets...")
     twitter_dataset = TwitterDataSet(positive_tweets=config.positive_tweets,
                                      negative_tweets=config.negative_tweets,
                                      test_data=config.test_data,
-                                     deduplicate_train_tweets=True)
+                                     deduplicate_train_tweets=False)
 
     print("Creating vocabulary...")
     word_to_occurrence_full = read_vocabulary_from_file(**config.vocab_path_opt)
@@ -77,7 +118,7 @@ def sklearn_model():
     trivially_preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(trivial_preprocessor, config.validation_split_ratio)
 
     print("Create sklearn model...")
-    model = AdaBoostModel.create_model(
+    model = AdaptiveAdaBoostModel.create_model(
                           twitter_dataset=twitter_dataset,
                           trivially_preprocessed_dataset=trivially_preprocessed_dataset,
                           preprocessor_factory=preprocessor_factory,
@@ -95,8 +136,6 @@ def sklearn_model():
     #                                      preprocessor=trivial_preprocessor,
     #                                      misclassified_samples_file=config.misclassified_samples_file)
 
-    # TODO: Staged prediction
-
     print("Output predictions...")
     print("\tWriting to: {}".format(config.result_file))
     AdaBoostModel.predict(model=model,
@@ -106,4 +145,4 @@ def sklearn_model():
 
 
 if __name__ == '__main__':
-    sklearn_model()
+    static_adaboost_model()

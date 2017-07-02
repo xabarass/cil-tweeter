@@ -21,6 +21,8 @@ from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings
 from KerasUtils import save_model
 from TwitterDataset import PreprocessedDataset
 
+############ Single neural network models ############
+
 # Callbacks for logging during training
 class ModelEvaluater(Callback):
     def __init__(self, model, x_val, y_val, verbosity=1, sample_weight=None):
@@ -80,7 +82,7 @@ class Network:
         if word_embeddings_opt_param["initializer"] in Network.word_embedding_models:
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
                 preprocessor=preprocessor,
-                preprocessed_tweets=preprocessed_dataset.weighted_preprocessed_tweets(),
+                preprocessed_tweets=preprocessed_dataset.all_preprocessed_tweets_weighted(),
                 word_embedding_dimensions=word_embeddings_opt_param["dim"],
                 embedding_corpus_name=word_embeddings_opt_param["corpus_name"])
             embedding_layer = Embedding(input_dim=preprocessor.vocabulary.word_count,
@@ -210,22 +212,22 @@ class Network:
             print("Generated submission file (%s) with %d results" % (prediction_file,predictions.shape[0]))
 
 
+############ Boosted models ############
+
 
 from sklearn.ensemble import AdaBoostClassifier
 from keras.wrappers.scikit_learn import KerasClassifier
 
-# Making sample_weight parameter explicit in KerasClassifier.fit method
-# as expected by scikit_learn using a decorator technique
+# Making sample_weight parameter explicit in KerasClassifier.fit method as expected by scikit_learn using a decorator
 def decorate_kerasClassifier_fit(fit):
     def decorated_fit(self, x, y, sample_weight=None, **kwargs):
         return fit(self, x, y, sample_weight=sample_weight, **kwargs)
     return decorated_fit
-
 KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
 
-
-# Boosting state
+# Sci-kit learn Adaboost derived class that stores current boosing iterate
 class BoostingState:
+    """Scikit learn AdaBoost iterate wrapper"""
     def __init__(self, iboost, X, sample_weight):
         self.iboost=iboost
         self.X=X
@@ -233,14 +235,18 @@ class BoostingState:
 
 # Log current state of boosting iteration
 class AdaptiveAdaBoostClassifier(AdaBoostClassifier):
+    """AdaBoost with exposed current boosting iterate"""
     def _boost(self, iboost, X, y, sample_weight, random_state):
-        """Implement a single boost iteration."""
+        """Store current boosting iterate, then call base class implementation of this method."""
         print("[AdaptiveAdaBoostClassifier] Called _boost (%d-th iteration), logging boosting state..." % (iboost+1))
         self._boosting_state = BoostingState(iboost,X,sample_weight)
         return super(AdaptiveAdaBoostClassifier,self)._boost(iboost, X, y, sample_weight, random_state)
 
 
 class AdaptiveKerasModelBuilder:
+    """Keras model factory for vocabulary-adaptive (preprocessor-adaptive) AdaBoost ensemble with token-weighting for
+       vocabulary generation and sample-weighting for word-embedding calculation.
+       To be used with the KerasClassifier Scikit learn wrapper for keras Sequential models."""
     def __init__(self, twitter_dataset,
                        trivially_preprocessed_dataset,
                        preprocessor_factory,
@@ -317,7 +323,7 @@ class AdaptiveKerasModelBuilder:
         #import pdb; pdb.set_trace()
 
         assert ("corpus_name" not in self.word_embeddings_opt) or (self.word_embeddings_opt["corpus_name"] is None)
-        embedding_layer = AdaBoostModel.create_embedding_layer(preprocessed_train_tweets=emb_preprocessed_tweets,
+        embedding_layer = AdaptiveAdaBoostModel.create_embedding_layer(preprocessed_train_tweets=emb_preprocessed_tweets,
                                                                sample_weight=emb_sample_weights,
                                                                preprocessed_dataset=preprocessed_dataset,
                                                                **self.word_embeddings_opt)
@@ -357,7 +363,13 @@ class AdaptiveKerasModelBuilder:
         return model
 
 
+
+# Keras model concatenated with preprocessing used in vocabulary-adaptive AdaBoost ensembles
 class Translator:
+    """Translates Scikit learn input samples (padded tweets as int-sequences) from a larger vocabulary obtained with
+       input_preprocessor to a smaller vocabulary obtained by output_processor (output_preprocessed_dataset is obtained
+       by generating a preprocessed TwitterDataset with that preprocessor) using preprocessor functions to map from
+       int-sequences to token-sequences, preprocess them and then map again to int-sequences."""
     def __init__(self, output_preprocessor, input_preprocessor, output_preprocessed_dataset):
         self.output_preprocessor = output_preprocessor
         self.input_preprocessor = input_preprocessor
@@ -379,6 +391,8 @@ class Translator:
 
 
 class AdaptiveSequential(Sequential):
+    """Sequential keras model that applies preprocessing in a first step using translation from larger to
+       smaller vocabulary"""
     def __init__(self,translator=None):
         print("[AdaptiveSequential] Creating AdaptiveSequential Keras model...")
         super().__init__()
@@ -401,6 +415,7 @@ class AdaptiveSequential(Sequential):
 
         evaluater=ModelEvaluater(self, x, y, verbosity=1, sample_weight=sample_weight)
         callbacks = [evaluater] if callbacks is None else (callbacks + [evaluater])
+        # Note, the validation accuracy displayed here is actually the weighted training accurracy
 
         return super().fit(self.translator(x), y,
                               batch_size=batch_size,
@@ -466,8 +481,36 @@ class AdaptiveSequential(Sequential):
         raise Exception("Generator interface not supported by this keras.models.Sequential wrapper")
 
 
-class AdaBoostModel:
 
+class StaticKerasModelBuilder:
+    """Keras model factory for static-preprocessor AdaBoost ensemble.
+       To be used with the KerasClassifier Scikit learn wrapper for keras Sequential models."""
+    def __init__(self, preprocessed_dataset,
+                       word_embeddings_opt,
+                       model_builder):
+        self.preprocessed_dataset=preprocessed_dataset
+        self.word_embeddings_opt=word_embeddings_opt
+        self.model_builder=model_builder
+        self._created_models = []
+
+    @classmethod
+    def register_adaboost(cls,adaboost):
+        cls._adaboost = adaboost
+
+    def __call__(self):
+        boosting_state = self._adaboost._boosting_state
+
+        assert ("corpus_name" not in self.word_embeddings_opt) or (self.word_embeddings_opt["corpus_name"] is None)
+
+        # Use config.ensemble_model_builder to configure model generation
+        model = Network.create_model(preprocessed_dataset=self.preprocessed_dataset,
+                                     word_embeddings_opt=self.word_embeddings_opt,
+                                     model_builder=self.model_builder)
+        self._created_models.append( model )
+        return model
+
+
+class AdaptiveAdaBoostModel:
     @classmethod
     def create_embedding_layer(cls, preprocessed_train_tweets, sample_weight, preprocessed_dataset,**word_embeddings_opt):
         preprocessor = preprocessed_dataset.preprocessor
@@ -516,8 +559,6 @@ class AdaBoostModel:
                            preprocessor_factory=preprocessor_factory,
                            word_embeddings_opt=word_embeddings_opt)
 
-        #evaluater=ModelEvaluater(model, model, x_val, y_val, result_epoch_file=None) # problem: model, x_val, y_val not accessible at this time
-
         training_opt_param = {"epochs":4, "batch_size":64}
         training_opt_param.update(training_opt)
 
@@ -541,7 +582,36 @@ class AdaBoostModel:
 
         return adaboost_model
 
+class StaticAdaBoostModel:
+    @classmethod
+    def create_model(cls,
+                     preprocessed_dataset,
+                     word_embeddings_opt={},
+                     training_opt={},
+                     model_builder=None):
+        keras_model_factory = StaticKerasModelBuilder(
+            preprocessed_dataset=preprocessed_dataset,
+            word_embeddings_opt=word_embeddings_opt,
+            model_builder=model_builder)
 
+        training_opt_param = {"epochs": 4, "batch_size": 64}
+        training_opt_param.update(training_opt)
+
+        sklearn_model = KerasClassifier(build_fn=keras_model_factory,
+                                        verbose=1, **training_opt_param  # , callbacks=callbacks
+                                        )
+
+        adaboost_model = AdaptiveAdaBoostClassifier(sklearn_model,
+                                                    algorithm="SAMME.R",
+                                                    n_estimators=5)
+
+        # Store reference to AdaBoost instance in keras models to access AdaBoost internals at model fit time
+        keras_model_factory.register_adaboost(adaboost_model)
+
+        return adaboost_model
+
+
+class AdaBoostModel:
     @classmethod
     def train(cls,model,
                   preprocessed_dataset, # NOTE: this dataset is trivially preprocessed (LexicalPreprocessor only)
