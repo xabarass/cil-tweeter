@@ -32,12 +32,31 @@ class Word2VecEmbeddings:
         if embedding_corpus_name:
             word_embedding_model.save(embedding_corpus_name)
 
+        self.dimension=word_embedding_dimensions
         self.embedding_matrix = np.zeros((preprocessor.vocabulary.word_count, word_embedding_dimensions))
         for word, id in preprocessor.vocabulary.word_to_id.items():
             if word in word_embedding_model.wv.vocab:
                 embedding_vector = word_embedding_model[word]
                 self.embedding_matrix[id] = embedding_vector
 
+class CharacterEmbeddings:
+    def __init__(self,
+         preprocessor, preprocessed_dataset,
+         word_embedding_dimensions, embedding_corpus_name):
+
+        print("Using character embedding layer")
+
+        vocab_size=preprocessor.vocabulary.size()
+        print(vocab_size)
+
+        embedding_matrix = np.zeros((vocab_size, vocab_size))
+        for i in range(0, vocab_size):
+            embeding_vector = np.zeros(vocab_size)
+            embeding_vector[i] = 1
+            embedding_matrix[i] = embeding_vector
+
+        self.dimension=vocab_size
+        self.embedding_matrix=embedding_matrix
 
 # TODO: Implement this
 class GloVeEmbeddings:

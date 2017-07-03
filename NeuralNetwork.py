@@ -17,7 +17,7 @@ from Emailer import Emailer
 import config
 
 # import our own modules
-from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings
+from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings, CharacterEmbeddings
 from KerasUtils import save_model
 
 
@@ -96,15 +96,16 @@ class ModelBuilder:
         word_embeddings_opt_param = {"initializer": "word2vec", "dim": 400, "trainable": False, "corpus_name": None}
         word_embeddings_opt_param.update(self.word_embeddings_opt)
         if word_embeddings_opt_param["initializer"] in Network.word_embedding_models:
+
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
                 self.vocabulary, self.preprocessed_dataset,
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
+
             embedding_layer = Embedding(self.preprocessor.vocabulary.word_count,
-                                        word_embeddings_opt_param["dim"],
+                                        word_embeddings.dimension,
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=self.preprocessed_dataset.max_tweet_length,
                                         trainable=self.word_embeddings_opt_param["trainable"])
-
         else:
             embedding_layer = Embedding(self.preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
@@ -165,7 +166,8 @@ class ModelBuilder:
 # TODO: Make this class a single module as it maintains no internal state (apart from a list of word_embedding_models)
 class Network:
     word_embedding_models =  { 'word2vec' : Word2VecEmbeddings,
-                               'glove'    : GloVeEmbeddings}
+                               'glove'    : GloVeEmbeddings,
+                               'characterEmbeddings':CharacterEmbeddings}
 
     # TODO: Move this outside of this class to make this only dealing with Keras models (as opposed to Scikit Learn modles)
     @classmethod
@@ -184,13 +186,14 @@ class Network:
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
                 preprocessor, preprocessed_dataset,
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
+            print("Using predefined embedding layer!")
             embedding_layer = Embedding(preprocessor.vocabulary.word_count,
-                                        word_embeddings_opt_param["dim"],
+                                        word_embeddings.dimension,
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])
-
         else:
+            print("Using generic embedding layer!")
             embedding_layer = Embedding(preprocessor.vocabulary.word_count,
                                         word_embeddings_opt_param["dim"],
                                         input_length=preprocessed_dataset.max_tweet_length,

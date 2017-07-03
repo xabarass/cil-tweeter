@@ -35,7 +35,6 @@ class TwitterDataSet:
         if not os.path.isfile(self.test_data_path):
             raise Exception("Not a valid file: %s"%self.test_data_path)
 
-
         def add_test_tweet(tweet):
             self.original_test_tweets.append(tweet)
 

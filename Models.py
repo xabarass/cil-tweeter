@@ -64,3 +64,28 @@ class DoubleConv:
         model.add(Activation('sigmoid'))
 
         return model
+
+class CharacterEmbeddingConv:
+    def __init__(self):
+        pass
+
+    def get_model(self, embedding_layer):
+        print("Generating new model!")
+        model = Sequential()
+        model.add(embedding_layer)
+        model.add(Convolution1D(1024,
+                                10,
+                                padding='valid',
+                                activation='relu'))
+        model.add(MaxPooling1D())
+        model.add(Convolution1D(2048,
+                                5,
+                                padding='valid',
+                                activation='relu'))
+        model.add(MaxPooling1D())
+        model.add(Flatten())
+        model.add(Dropout(0.5))
+        model.add(Dense(1))
+        model.add(Activation('sigmoid'))
+
+        return model

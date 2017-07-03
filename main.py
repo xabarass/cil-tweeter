@@ -4,7 +4,7 @@ import config
 
 from TwitterDataset import TwitterDataSet
 
-from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor
+from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor, CharacterBasedPreprocessor
 
 from NeuralNetwork import Network
 
@@ -23,7 +23,7 @@ def keras_model():
     word_to_occurrence_full = read_vocabulary_from_file(**config.vocab_path_opt)
 
     preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
-    #preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
 
     print("Creating training data set...")
     preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)

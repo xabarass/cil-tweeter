@@ -62,10 +62,9 @@ preprocessor_opt = { "remove_unknown_words": True,
 ### ML model options
 
 # Embedding layer parameters
-word_embeddings_opt = {"initializer": "word2vec",
-                       "dim": 400,
-                       "trainable": True,
-                       "corpus_name": "full.emb"}
+word_embeddings_opt = {"initializer": "characterEmbeddings",
+                       "trainable": False,
+                       "corpus_name":"full.emb"}
 
 # Neural network parameter
 model_builder=Models.SingleLSTM({"lstm_units":250})
