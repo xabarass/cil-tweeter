@@ -147,4 +147,4 @@ def adaptive_adaboost_model():
 
 
 if __name__ == '__main__':
-    adaptive_adaboost_model()
+    static_adaboost_model()
