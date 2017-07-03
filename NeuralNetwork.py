@@ -571,7 +571,8 @@ class AdaptiveAdaBoostModel:
         training_opt_param.update(training_opt)
 
         adaboost_opt_param = { "algorithm": "SAMME.R",
-                               "n_estimators": 5}
+                               "n_estimators": 5,
+                               "learning_rate": 1}
         adaboost_opt_param.update(adaboost_opt)
 
         # evaluater=ModelEvaluater(model, x_val, y_val)
@@ -610,7 +611,8 @@ class StaticAdaBoostModel:
         training_opt_param.update(training_opt)
 
         adaboost_opt_param = { "algorithm": "SAMME.R",
-                               "n_estimators": 5}
+                               "n_estimators": 5,
+                               "learning_rate": 1}
         adaboost_opt_param.update(adaboost_opt)
 
 
