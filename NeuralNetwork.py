@@ -226,7 +226,7 @@ def decorate_kerasClassifier_fit(fit):
         y_predict = self.predict(x)
         estimator_error = np.mean(
             np.average(y_predict != y, weights=sample_weight, axis=0))
-        print("\n[KerasClassifier] Weighted training error: {}".format(estimator_error))
+        print("\n[KerasClassifier] Weighted training error: %.2f%%" % (estimator_error*100))
         return history
     return decorated_fit
 KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
@@ -251,7 +251,7 @@ class AdaptiveAdaBoostClassifier(AdaBoostClassifier):
     """AdaBoost with exposed current boosting iterate"""
     def _boost(self, iboost, X, y, sample_weight, random_state):
         """Store current boosting iterate, then call base class implementation of this method."""
-        print("[AdaptiveAdaBoostClassifier] Called _boost (%d-th iteration), logging boosting state..." % (iboost+1))
+        print("\n[AdaptiveAdaBoostClassifier] Called _boost (%d-th iteration), logging boosting state..." % (iboost+1))
         self._boosting_state = BoostingState(iboost,X,sample_weight)
         return super(AdaptiveAdaBoostClassifier,self)._boost(iboost, X, y, sample_weight, random_state)
 
@@ -644,9 +644,13 @@ class AdaBoostModel:
 
         model.fit(x_train, y_train)
 
+        print("***** Training summary *****")
+        for iboost, (weight, error) in enumerate(zip(model.estimator_weights_,model.estimator_errors_)):
+            print( "\t%d-th estimator: weighted training error = %.2f%%, estimator weight = %.8f" % (iboost, 100*error, weight) )
+
         print("***** Evaluation *****")
         for iboost, accuracy in enumerate(model.staged_score(x_val, y_val)):
-            print( "\t{}-th boosting iteration: accuracy = {}".format(iboost, accuracy) )
+            print( "\tAfter %d-th boosting iteration: accuracy = %.2f%%" % (iboost, 100*accuracy) )
 
         # TODO: save all models and weights to a json file (model.weights, etc. cf. doc)
         #if model_save_path is not None:

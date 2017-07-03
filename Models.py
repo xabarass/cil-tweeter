@@ -5,7 +5,7 @@ from keras.layers.merge import Concatenate
 
 class SingleLSTM:
     def __init__(self, params={}):
-        print("Creating LSTM neural network")
+        print("Creating LSTM neural network factory")
         self.train_params = {"lstm_units": 200, "dropout": 0.5, "activation": "sigmoid"}
         self.train_params.update(params)
 
@@ -20,7 +20,7 @@ class SingleLSTM:
 
 class BidirectionalLSTM:
     def __init__(self, params={}):
-        print("Creating bidirectional LSTM neural network")
+        print("Creating bidirectional LSTM neural network factory")
         self.train_params = {"lstm_units": 200, "dropout": 0.5, "activation": "sigmoid"}
         self.train_params.update(params)
 
@@ -43,6 +43,7 @@ class BidirectionalLSTM:
 
 class DoubleConv:
     def __init__(self, params={}):
+        print("Creating DoubleConv neural network factory")
         self.train_params={}
         self.train_params.update(params)
 
@@ -64,3 +65,25 @@ class DoubleConv:
         model.add(Activation('sigmoid'))
 
         return model
+
+
+class LSTMConvEnsemble:
+    boosting_iterate = 0
+
+    def __init__(self, params={}):
+        print("Creating LSTM DoubleConv Ensemble neural network factory")
+        self.train_params={}
+        self.train_params.update(params)
+        self.lstm_builder = SingleLSTM()
+        self.conv_builder = DoubleConv()
+
+    def get_model(self, embedding_layer):
+        if LSTMConvEnsemble.boosting_iterate == 0:
+            print("Creating LSTM recurrent neural network")
+            model = self.lstm_builder.get_model(embedding_layer=embedding_layer)
+        else:
+            print("Creating convolutional neural network")
+            model = self.conv_builder.get_model(embedding_layer=embedding_layer)
+        LSTMConvEnsemble.boosting_iterate += 1
+        return model
+

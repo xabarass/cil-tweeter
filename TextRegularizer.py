@@ -238,3 +238,32 @@ class TextRegularizer:
         :return: list of replacement symbols
         '''
         return list(TextRegularizer.tags.values()) # using "<...>" to denote replacement symbols/tags except for smileys (clear)
+
+
+
+def stemming(word):
+    '''
+    Performs word stemming
+    :param word: Input word
+    :return:     Stemmed version of the word
+    '''
+    if word.startswith('#'):
+        pass
+    elif word.endswith('ing') and len(word) > 5:
+        word = word[:-3]
+        if (word[-1] == word[-2]):
+            word = word[:-1]
+    elif word.endswith('ation') and len(word) > 7:
+        word = word[:-5]
+    elif word.endswith('ed') and len(word) > 4:
+        word = word[:-2]
+    elif word.endswith('en') and len(word) > 4:
+        word = word[:-2]
+    elif word.endswith('s') and len(word) > 4:
+        word = word[:-1]
+        if word.endswith('e'):
+            word = word[:-1]
+    elif word.endswith('e') and len(word) > 4:
+        word = word[:-1]
+
+    return word
