@@ -225,6 +225,13 @@ def decorate_kerasClassifier_fit(fit):
     return decorated_fit
 KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
 
+def decorate_kerasClassifier_predict(predict):
+    def decorated_predict(self, x, **kwargs):
+        return np.reshape(predict(self, x,**kwargs), (-1,))
+    return decorated_predict
+KerasClassifier.predict = decorate_kerasClassifier_predict(KerasClassifier.predict)
+
+
 # Sci-kit learn Adaboost derived class that stores current boosing iterate
 class BoostingState:
     """Scikit learn AdaBoost iterate wrapper"""
@@ -633,7 +640,7 @@ class AdaBoostModel:
         model.fit(x_train, y_train)
 
         print("***** Evaluation *****")
-        for iboost, accuracy in enumerate(model.staged_score(x_val,y_val)):
+        for iboost, accuracy in enumerate(model.staged_score(x_val, y_val)):
             print( "\t{}-th boosting iteration: accuracy = {}".format(iboost, accuracy) )
 
         # TODO: save all models and weights to a json file (model.weights, etc. cf. doc)
