@@ -44,7 +44,8 @@ test_data = './twitter-datasets/cleared_test_data.txt'
 # Dataset parameters (size of validation data set)
 if azure_config:
     validation_split_ratio=0.999
-    test_run_data_ratio=1
+    test_run_data_ratio=0.01
+    test_run_test_data_ratio=1
 elif local_config:
     validation_split_ratio = 0.99
     test_run_data_ratio=0.02
@@ -58,10 +59,10 @@ vocab_path_opt = { "vocab_path": vocab_path  }
 
 min_word_occurrence = 4
 def final_vocabulary_filter(word, occurrence):
-    return (len(word) > 3 and occurrence > min_word_occurrence) or \
-           (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
-           (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
-           (len(word) == 1 and occurrence >=50*min_word_occurrence)
+    return occurrence > min_word_occurrence #(len(word) > 3 and occurrence > min_word_occurrence) #or \
+         #  (len(word) == 3 and occurrence >= 1.25*min_word_occurrence) or \
+         #  (len(word) == 2 and occurrence >= 10*min_word_occurrence)  or \
+         #  (len(word) == 1 and occurrence >=50*min_word_occurrence)
 final_vocabulary_filter.min_word_occurrence = min_word_occurrence # This is used by the Vocabulary and WordEmbedding classes
 
 def preprocessor_vocabulary_filter(word, occurrence):
@@ -80,7 +81,7 @@ preprocessor_opt = { "remove_unknown_words": True,
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
                        "trainable": False,
-                       "corpus_name": None}
+                       "corpus_name": 'full.emb'}
 
 # Neural network parameter
 model_builder=Models.SingleLSTM()
@@ -88,11 +89,11 @@ model_builder=Models.SingleLSTM()
 ensemble_model_builder=Models.DoubleConv()
 
 # Ensemble parameters
-adaboost_opt = {"algorithm": "SAMME.R",
+adaboost_opt = {"algorithm": "SAMME",
                 "n_estimators": 15}
 
 # Training parameters
-training_opt = {"epochs":3,
+training_opt = {"epochs":4,
                 "batch_size":64 }
 
 # Results output parameters
