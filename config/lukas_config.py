@@ -50,8 +50,8 @@ if azure_config:
     validation_split_ratio=0.999
     test_run_data_ratio=1
 elif local_config:
-    validation_split_ratio = 0.99
-    test_run_data_ratio=0.1
+    validation_split_ratio = 0.66
+    test_run_data_ratio=0.01
     test_run_test_data_ratio=0.01
 else:
     raise
@@ -94,7 +94,7 @@ ensemble_model_builder=Models.DoubleConv()
 # Ensemble parameters
 adaboost_opt = {"algorithm": "SAMME.R",
                 "n_estimators": 15,
-                "learning_rate": 10}
+                "learning_rate": 1}
 
 # Training parameters
 training_opt = {"epochs":3,

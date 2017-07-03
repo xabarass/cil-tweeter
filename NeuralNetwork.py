@@ -221,7 +221,13 @@ from keras.wrappers.scikit_learn import KerasClassifier
 # Making sample_weight parameter explicit in KerasClassifier.fit method as expected by scikit_learn using a decorator
 def decorate_kerasClassifier_fit(fit):
     def decorated_fit(self, x, y, sample_weight=None, **kwargs):
-        return fit(self, x, y, sample_weight=sample_weight, **kwargs)
+        history = fit(self, x, y, sample_weight=sample_weight, **kwargs)
+
+        y_predict = self.predict(x)
+        estimator_error = np.mean(
+            np.average(y_predict != y, weights=sample_weight, axis=0))
+        print("\n[KerasClassifier] Weighted training error: {}".format(estimator_error))
+        return history
     return decorated_fit
 KerasClassifier.fit = decorate_kerasClassifier_fit(KerasClassifier.fit)
 
