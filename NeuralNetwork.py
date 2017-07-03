@@ -499,9 +499,6 @@ class StaticKerasModelBuilder:
 
     def __call__(self):
         boosting_state = self._adaboost._boosting_state
-
-        assert ("corpus_name" not in self.word_embeddings_opt) or (self.word_embeddings_opt["corpus_name"] is None)
-
         # Use config.ensemble_model_builder to configure model generation
         model = Network.create_model(preprocessed_dataset=self.preprocessed_dataset,
                                      word_embeddings_opt=self.word_embeddings_opt,
