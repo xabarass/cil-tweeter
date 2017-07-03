@@ -4,7 +4,7 @@ import config
 
 from TwitterDataset import TwitterDataSet
 
-from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor
+from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor, StemmingPreprocessor
 
 from NeuralNetwork import Network, AdaBoostModel, StaticAdaBoostModel, AdaptiveAdaBoostModel
 
@@ -24,6 +24,9 @@ def keras_model():
 
     preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
     #preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    # preprocessor = StemmingPreprocessor(preprocessor,
+    #                                     stemming_vocabulary_filter=config.preprocessor_opt['final_vocabulary_filter'],
+    #                                     remove_unknown_words=config.preprocessor_opt['remove_unknown_words'])
 
     print("Preprocessing training data set...")
     preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)
@@ -31,7 +34,6 @@ def keras_model():
     print("Create keras model...")
     model = Network.create_model(
                           preprocessed_dataset=preprocessed_dataset,
-                          preprocessor=preprocessor,
                           word_embeddings_opt=config.word_embeddings_opt,
                           model_builder=config.model_builder)
 
@@ -147,4 +149,4 @@ def adaptive_adaboost_model():
 
 
 if __name__ == '__main__':
-    static_adaboost_model()
+    keras_model()

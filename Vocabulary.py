@@ -3,7 +3,7 @@ import logging
 import os
 import numpy as np
 from tqdm import tqdm
-from TextRegularizer import TextRegularizer
+from TextRegularizer import TextRegularizer, stemming
 
 
 def read_vocabulary_from_file(vocab_path, test_vocab_path=None):
@@ -93,7 +93,9 @@ class Vocabulary:
         return [self.id_to_word[id] for id in tweet_id_seq]
 
 class InternalVocabulary:
-    """Creates an stripped down vocabulary for internal use by the preprocessor based on unfiltered word-frequency dict"""
+    '''
+    Creates an stripped down vocabulary for internal use by the preprocessor based on unfiltered word-frequency dict
+    '''
 
     def __init__(self, unfiltered_word_to_occurrence, preprocessor):
         _, self.word_to_occurrence = create_filtered_vocabulary(unfiltered_word_to_occurrence,
@@ -102,6 +104,16 @@ class InternalVocabulary:
 
         self.filter = preprocessor.internal_vocabulary_filter
 
+    @property
+    def word_count(self):
+        return len(self.word_to_occurrence)
+
+    @property
+    def total_token_count(self):
+        total_num_tokens = 0
+        for occurrence in self.word_to_occurrence.values():
+            total_num_tokens += occurrence
+        return total_num_tokens
 
 
 def create_filtered_vocabulary(preprocessed_word_to_occurrence,
@@ -232,7 +244,6 @@ class BasePreprocessor:
     def vocabulary(self):
         return self.final_vocabulary
 
-
     def get_special_symbols(self):
         return (['<pad>'] if self.remove_unknown_words else ['<pad>','<unk>']) + self._get_special_symbols()
 
@@ -253,7 +264,6 @@ class BasePreprocessor:
         # Replacing tokens by vocabulary terms or '<unk>' for unknown terms if self.remove_unknown_words != True
         token_seq = [(word if word in self.final_vocabulary.word_to_id else '<unk>') for word in token_seq]
         return [word for word in filter(lambda w: w != '<unk>' or not self.remove_unknown_words, token_seq)]
-
 
     def preprocess_and_map_tweet_to_id_seq(self, tweet):
         """Preprocess tweet with lexical/stemming/filtering phase and replace every token by vocabulary integer id"""
@@ -290,8 +300,7 @@ class LexicalPreprocessor(BasePreprocessor):
     def initial_pass_vocab(self, word):
         return self.secondary_preprocessing_tweet([word])
 
-    @classmethod
-    def lexical_preprocessing_tweet(cls, tweet):
+    def lexical_preprocessing_tweet(self, tweet):
         """Lexical tweet preprocessing - tokenization"""
         words = tweet.rstrip().split(' ')
         return words
@@ -313,7 +322,9 @@ class RegularizingPreprocessor(BasePreprocessor):
         preprocessed_word_to_occurrence = iterative_vocabulary_generator(word_to_occurrence_full=word_to_occurrence_full,
                                                                          preprocessor=self)
         self._update_vocabulary(preprocessed_word_to_occurrence)
-        print("Vocabulary of model has {} words".format(self.final_vocabulary.word_count))
+        print("[RegularizingPreprocessor] Finished constructing vocabulary...")
+        print("[RegularizingPreprocessor] Vocabulary has {} words".format(self.final_vocabulary.word_count))
+        print("[RegularizingPreprocessor] Internal (hashtag tokenizer) vocabulary has {} words".format(self.internal_vocabulary.word_count))
 
     def _update_vocabulary(self, unfiltered_word_to_occurrence):
         self.internal_vocabulary = InternalVocabulary(unfiltered_word_to_occurrence,self)
@@ -330,8 +341,7 @@ class RegularizingPreprocessor(BasePreprocessor):
     def extra_pass_vocab(self, word):
         return self.secondary_preprocessing_tweet([word])
 
-    @classmethod
-    def lexical_preprocessing_tweet(cls, tweet):
+    def lexical_preprocessing_tweet(self, tweet):
         """Lexical tweet preprocessing - tokenization"""
         words = tweet.rstrip().split(' ')
         return words
@@ -346,3 +356,42 @@ class RegularizingPreprocessor(BasePreprocessor):
                 regularized_words.append(new_word)
 
         return regularized_words
+
+
+class StemmingPreprocessor(BasePreprocessor):
+    def __init__(self,
+                 upstream_preprocessor,
+                 stemming_vocabulary_filter,
+                 remove_unknown_words=False):
+        super(StemmingPreprocessor,self).__init__(final_vocabulary_filter=stemming_vocabulary_filter,
+                                                  remove_unknown_words=remove_unknown_words)
+        self.upstream_preprocessor = upstream_preprocessor
+        word_to_occurrence_full = self.upstream_preprocessor.final_vocabulary.word_to_occurrence # access final vocabulary of upstream preprocessor
+        if not isinstance(word_to_occurrence_full, dict):
+            raise Exception("Must deal separately with vocabulary provided in a list")
+        preprocessed_word_to_occurrence = \
+            single_pass_vocabulary_generator(word_to_occurrence_full=word_to_occurrence_full,
+                                             preprocessor=self)
+        self.final_vocabulary = Vocabulary(preprocessed_word_to_occurrence=preprocessed_word_to_occurrence,
+                                           preprocessor=self)
+        print("[StemmingPreprocessor] Finished constructing vocabulary...")
+        print("[StemmingPreprocessor] Vocabulary has {} words".format(self.final_vocabulary.word_count))
+
+    def _get_special_symbols(self):
+        return self.upstream_preprocessor._get_special_symbols()
+
+    def initial_pass_vocab(self, word):
+        return [stemming(word)]
+
+    def lexical_preprocessing_tweet(self, tweet):
+        """Lexical tweet preprocessing - tokenization"""
+        return self.upstream_preprocessor.lexical_preprocessing_tweet(tweet)
+
+    def secondary_preprocessing_tweet(self, token_seq):
+        """Stemming preprocessing of tokenized tweet"""
+        upstream_token_seq = self.upstream_preprocessor.secondary_preprocessing_tweet(token_seq)
+        stemmed_token_seq = []
+        for token in upstream_token_seq:
+            stemmed_token_seq.append( stemming( token ) )
+        return stemmed_token_seq
+
