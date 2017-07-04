@@ -92,3 +92,10 @@ elif preprocessor_type=='characters':
 
 else:
     raise
+
+# Results output parameters
+result_file='results/result.csv'
+misclassified_samples_file = 'misclassified_samples/misclassified_{}_samples'
+
+# Load model parameters
+model_save_path = "model"
