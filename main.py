@@ -24,9 +24,9 @@ def keras_model():
 
     preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
     #preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
-    # preprocessor = StemmingPreprocessor(preprocessor,
-    #                                     stemming_vocabulary_filter=config.preprocessor_opt['final_vocabulary_filter'],
-    #                                     remove_unknown_words=config.preprocessor_opt['remove_unknown_words'])
+    #preprocessor = StemmingPreprocessor(preprocessor,
+    #                                    stemming_vocabulary_filter=config.preprocessor_opt['final_vocabulary_filter'],
+    #                                    remove_unknown_words=config.preprocessor_opt['remove_unknown_words'])
 
     print("Preprocessing training data set...")
     preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)
