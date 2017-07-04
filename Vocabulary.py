@@ -38,6 +38,38 @@ def read_vocabulary_from_file(vocab_path, test_vocab_path=None):
 
     return word_to_occurrence
 
+def ouput_vocabulary_statistics(word_to_occurrence_full):
+    total_token_count = 0
+    for occurrence in word_to_occurrence_full.values():
+        total_token_count += occurrence
+
+    freq_word_list = []
+    token_count = 0
+    for occurrence, word in sorted([(occ,wd) for wd, occ in word_to_occurrence_full.items()]):
+        if len(freq_word_list) > 0 and freq_word_list[-1][0] == occurrence:
+            freq_word_list[-1][1].append(word)
+        else:
+            if len(freq_word_list) > 0:
+                freq_word_list[-1] = (freq_word_list[-1][0],freq_word_list[-1][1],float(token_count)/total_token_count)
+            freq_word_list.append((occurrence,[word],-1))
+        token_count += occurrence
+
+    if len(freq_word_list) > 0:
+        freq_word_list[-1] = (freq_word_list[-1][0],freq_word_list[-1][1],float(token_count)/total_token_count)
+
+    print(" Word occurrence | Quantile in frequency distribution | Example words ")
+    print(" --------------------- rarely occurring words ----------------------- ")
+    for occurrence, words, quantile in freq_word_list[:100]:
+        print("\t %7d \t|\t %6.2f%% \t|\t %s " % (occurrence,quantile * 100, str(words[:min(10,len(words))]) ) )
+
+    print(" ----------------- intermediate frequency words --------------------- ")
+    for occurrence, words, quantile in freq_word_list[500:600]:
+        print("\t %7d \t|\t %6.2f%% \t|\t %s " % (occurrence, quantile * 100, str(words[:min(10, len(words))])))
+
+    print(" ---------------------- most frequent words ------------------------- ")
+    for occurrence, words, quantile in [it for it in reversed(freq_word_list)][:100]:
+        print("\t %7d \t|\t %6.2f%% \t|\t %s " % (occurrence, quantile * 100, str(words[:min(10, len(words))])))
+
 
 class Vocabulary:
     """Creates an internal preprocessor vocabulary from unfiltered word-frequency dict"""
