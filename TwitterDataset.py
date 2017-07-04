@@ -5,7 +5,6 @@ import random
 import numpy as np
 from tqdm import tqdm
 from keras.preprocessing import sequence
-import TextRegularizer
 
 import config
 

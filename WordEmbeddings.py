@@ -18,7 +18,10 @@ class Word2VecEmbeddings:
                 print("Word embeddings loaded!")
 
         if not word_embedding_model:
-            min_word_occurrence = preprocessor.vocabulary.min_word_occurrence if hasattr(preprocessor.vocabulary, "min_word_occurrence") else 5
+            if hasattr(preprocessor.vocabulary, "min_word_occurrence"):
+                min_word_occurrence = preprocessor.vocabulary.min_word_occurrence
+            else:
+                raise
             word_embedding_model = Word2Vec(preprocessed_dataset.all_preprocessed_tweets(), # preprocessed_dataset.all_tokenized_tweets(),
                                             size=word_embedding_dimensions,
                                             window=7,
@@ -32,7 +35,7 @@ class Word2VecEmbeddings:
         if embedding_corpus_name:
             word_embedding_model.save(embedding_corpus_name)
 
-        self.dimension=word_embedding_dimensions
+        self.output_dimension=word_embedding_dimensions
         self.embedding_matrix = np.zeros((preprocessor.vocabulary.word_count, word_embedding_dimensions))
         for word, id in preprocessor.vocabulary.word_to_id.items():
             if word in word_embedding_model.wv.vocab:
@@ -46,7 +49,7 @@ class CharacterEmbeddings:
 
         print("Using character embedding layer")
 
-        vocab_size=preprocessor.vocabulary.size()
+        vocab_size=preprocessor.vocabulary.word_count
         print(vocab_size)
 
         embedding_matrix = np.zeros((vocab_size, vocab_size))
@@ -55,7 +58,7 @@ class CharacterEmbeddings:
             embeding_vector[i] = 1
             embedding_matrix[i] = embeding_vector
 
-        self.dimension=vocab_size
+        self.output_dimension=vocab_size
         self.embedding_matrix=embedding_matrix
 
 # TODO: Implement this

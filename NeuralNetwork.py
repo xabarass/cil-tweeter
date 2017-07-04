@@ -102,7 +102,7 @@ class ModelBuilder:
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
 
             embedding_layer = Embedding(self.preprocessor.vocabulary.word_count,
-                                        word_embeddings.dimension,
+                                        word_embeddings.output_dimension,
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=self.preprocessed_dataset.max_tweet_length,
                                         trainable=self.word_embeddings_opt_param["trainable"])
@@ -188,7 +188,7 @@ class Network:
                 word_embeddings_opt_param["dim"], word_embeddings_opt_param["corpus_name"]) # TODO: Replace explicit dict access by **word_embeddings_opt
             print("Using predefined embedding layer!")
             embedding_layer = Embedding(preprocessor.vocabulary.word_count,
-                                        word_embeddings.dimension,
+                                        word_embeddings.output_dimension,
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])

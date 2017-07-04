@@ -27,11 +27,11 @@ class BidirectionalLSTM:
     def get_model(self, embedding_layer):
         forward_input = Input(shape=(embedding_layer.input_length,),dtype='int64', name='forward_input')
         emb_forward_input = embedding_layer(forward_input)
-        lstmout_forward_input = LSTM(self.train_params["lstm_units"])(emb_forward_input)
+        lstmout_forward_input = LSTM(self.train_params["lstm_units"], implementation=2)(emb_forward_input)
 
         backward_input = Input(shape=(embedding_layer.input_length,),dtype='int64', name='backward_input')
         emb_backward_input = embedding_layer(backward_input)
-        lstmout_backward_input = LSTM(self.train_params["lstm_units"])(emb_backward_input)
+        lstmout_backward_input = LSTM(self.train_params["lstm_units"], implementation=2)(emb_backward_input)
 
         lstmout_both_dir = Concatenate()([lstmout_forward_input,lstmout_backward_input])
         dropout_both_dir = Dropout(self.train_params["dropout"])(lstmout_both_dir)
@@ -67,10 +67,11 @@ class DoubleConv:
 
 class CharacterEmbeddingConv:
     def __init__(self):
+        print("Creating character convolutional neural network factory")
         pass
 
     def get_model(self, embedding_layer):
-        print("Generating new model!")
+        print("Creating character convolutional neural network")
         model = Sequential()
         model.add(embedding_layer)
         model.add(Convolution1D(1024,

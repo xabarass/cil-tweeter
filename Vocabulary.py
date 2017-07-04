@@ -89,9 +89,6 @@ class Vocabulary:
         assert isinstance(tweet_id_seq, list)
         return [self.id_to_word[id] for id in tweet_id_seq]
 
-    def size(self):
-        return len(self.word_to_id)
-
 class InternalVocabulary:
     """Creates an stripped down vocabulary for internal use by the preprocessor based on unfiltered word-frequency dict"""
 
@@ -284,9 +281,7 @@ class LexicalPreprocessor(BasePreprocessor):
         return []
 
     def initial_pass_vocab(self, word):
-        # CHECKME: @Lukas can you check if this is correct, had to change it to avoid assertions
-        return [word]
-        # return self.secondary_preprocessing_tweet(word)
+        return self.secondary_preprocessing_tweet(word)
 
     @classmethod
     def lexical_preprocessing_tweet(cls, tweet):
@@ -344,31 +339,26 @@ class RegularizingPreprocessor(BasePreprocessor):
 
         return regularized_words
 
+
+
 class CharacterBasedPreprocessor(BasePreprocessor):
-
     def __init__(self, word_to_occurrence_full):
-        super(CharacterBasedPreprocessor, self).__init__(final_vocabulary_filter=None, remove_unknown_words=True)
+        def character_vocabulary_filter(word, occurrence):
+            return (32 <= ord(word) and ord(word) < 65) or (91 <= ord(word) and ord(word) < 127)
+        character_vocabulary_filter.min_word_occurrence = 0
 
-        def _final_vocabulary_filter(word, occurrence):
-            return True
-        _final_vocabulary_filter.min_word_occurrence = 0
+        super(CharacterBasedPreprocessor, self).__init__(final_vocabulary_filter=character_vocabulary_filter, remove_unknown_words=True)
 
-        self.final_vocabulary_filter=_final_vocabulary_filter
+        char_to_occurrence = \
+            single_pass_vocabulary_generator(word_to_occurrence_full=word_to_occurrence_full,
+                                             preprocessor=self)
 
-        char_to_occurrence={}
-
-        for i in range(32, 65):
-            char_to_occurrence[chr(i)]= 0
-        for i in range(91, 127):
-            char_to_occurrence[chr(i)] = 0
-
-        print("Character to occurrence count {}".format(len(char_to_occurrence)))
-        print(char_to_occurrence)
+        print("[CharacterBasedPreprocessor] Character to occurrence count {}".format(len(char_to_occurrence)))
 
         self.final_vocabulary = Vocabulary(preprocessed_word_to_occurrence=char_to_occurrence,
                                            preprocessor=self)
 
-        print("Vocabulary of model has {} words".format(self.final_vocabulary.word_count))
+        print("[CharacterBasedPreprocessor] Vocabulary has {} words".format(self.final_vocabulary.word_count))
 
     # Symbols to be replaced with special characters
     special_symbols=[
@@ -384,19 +374,20 @@ class CharacterBasedPreprocessor(BasePreprocessor):
 
     @classmethod
     def lexical_preprocessing_tweet(cls, tweet):
-
+        """Lexical tweet preprocessing - tokenization"""
         words = tweet.rstrip().split(' ')
-        converted_tweet = []
-        for word in words:
-            if word in CharacterBasedPreprocessor.special_symbols:
-                converted_tweet.append(word)
-            else:
-                for char in word:
-                    converted_tweet.append(char)
-
-            converted_tweet.append(' ')
-
-        return converted_tweet[:-1]
+        return words
 
     def secondary_preprocessing_tweet(self, token_seq):
-        return token_seq
+        """Secondary tweet preprocessing - character splitting"""
+        character_seq = []
+        for word in token_seq:
+            if word in CharacterBasedPreprocessor.special_symbols:
+                character_seq.append(word)
+            else:
+                for char in word:
+                    character_seq.append(char)
+
+            character_seq.append(' ')
+
+        return character_seq[:-1]

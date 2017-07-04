@@ -40,7 +40,7 @@ def _convert_sad_emoticons(word, word_to_occurrence=None):
 
 def _convert_happy_emoticons(word, word_to_occurrence=None):
     if (not word in word_to_occurrence) and happy_emoticon_pattern.match(word):
-        print("happy: {}".format(word))
+        #print("happy: {}".format(word))
         return True, [TextRegularizer.tags['happy_emoticon']]
     else:
         return False, None
@@ -228,9 +228,9 @@ class TextRegularizer:
              'happybirthday':  '<happybirthday>',
              'time':           '<time>',
              'date':           '<date>',
-             'number':         '<number>',
-             'hashtag_begin':  '<hashtag_begin>',
-             'hashtag_end':    '<hashtag_end>'}
+             'number':         '<number>'}#,
+             #'hashtag_begin':  '<hashtag_begin>',
+             #'hashtag_end':    '<hashtag_end>'}
 
     @classmethod
     def get_special_words(cls):
