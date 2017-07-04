@@ -153,3 +153,4 @@ def print_vocabulary_statistics():
 
 if __name__ == '__main__':
     print_vocabulary_statistics()
+
