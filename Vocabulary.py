@@ -357,15 +357,49 @@ class RegularizingPreprocessor(BasePreprocessor):
         return regularized_words
 
 
-class StemmingPreprocessor(BasePreprocessor):
+class ExtraPreprocessor(BasePreprocessor):
+    '''
+    Base class for an extra preprocessor layer subsequent to another one upstream following the decorator pattern.
+    Delegates lexical preprocessing upstream, while it lets child classes implement an additional layer of secondary
+    preprocessing in the method extra_secondary_preprocessing_tweet. Maintains a vocabulary of output symbols
+    (with truncation filtering policy).
+    '''
+    def __init__(self,
+                 upstream_preprocessor,
+                 final_vocabulary_filter,
+                 remove_unknown_words=False):
+        super(ExtraPreprocessor,self).__init__(final_vocabulary_filter=final_vocabulary_filter,
+                                               remove_unknown_words=remove_unknown_words)
+        self.upstream_preprocessor = upstream_preprocessor
+
+    def _get_special_symbols(self):
+        return self.upstream_preprocessor._get_special_symbols() + self._get_extra_special_symbols()
+
+    def lexical_preprocessing_tweet(self, tweet):
+        """Lexical tweet preprocessing - tokenization"""
+        return self.upstream_preprocessor.lexical_preprocessing_tweet(tweet)
+
+    def secondary_preprocessing_tweet(self, token_seq):
+        """Secondary preprocessing of tokenized tweet"""
+        upstream_token_seq = self.upstream_preprocessor.secondary_preprocessing_tweet(token_seq)
+        upstream_token_seq = self.upstream_preprocessor.vocabulary_filtering_tweet(upstream_token_seq) # need vocabulary filtering here for correctness of preprocess_tweet
+        return self.extra_secondary_preprocessing_tweet(upstream_token_seq)
+
+
+class StemmingPreprocessor(ExtraPreprocessor):
+    '''
+    Stemming preprocessor decorator - adds an extra layer of stemming in the secondary preprocessing step to a
+    pre-existing preprocessor.
+    '''
     def __init__(self,
                  upstream_preprocessor,
                  stemming_vocabulary_filter,
                  remove_unknown_words=False):
-        super(StemmingPreprocessor,self).__init__(final_vocabulary_filter=stemming_vocabulary_filter,
+        super(StemmingPreprocessor,self).__init__(upstream_preprocessor=upstream_preprocessor,
+                                                  final_vocabulary_filter=stemming_vocabulary_filter,
                                                   remove_unknown_words=remove_unknown_words)
-        self.upstream_preprocessor = upstream_preprocessor
-        word_to_occurrence_full = self.upstream_preprocessor.final_vocabulary.word_to_occurrence # access final vocabulary of upstream preprocessor
+        # access final vocabulary of upstream preprocessor (final vocabulary is understood as output vocabulary)
+        word_to_occurrence_full = self.upstream_preprocessor.final_vocabulary.word_to_occurrence
         if not isinstance(word_to_occurrence_full, dict):
             raise Exception("Must deal separately with vocabulary provided in a list")
         preprocessed_word_to_occurrence = \
@@ -376,19 +410,14 @@ class StemmingPreprocessor(BasePreprocessor):
         print("[StemmingPreprocessor] Finished constructing vocabulary...")
         print("[StemmingPreprocessor] Vocabulary has {} words".format(self.final_vocabulary.word_count))
 
-    def _get_special_symbols(self):
-        return self.upstream_preprocessor._get_special_symbols()
+    def _get_extra_special_symbols(self):
+        return []
 
     def initial_pass_vocab(self, word):
         return [stemming(word)]
 
-    def lexical_preprocessing_tweet(self, tweet):
-        """Lexical tweet preprocessing - tokenization"""
-        return self.upstream_preprocessor.lexical_preprocessing_tweet(tweet)
-
-    def secondary_preprocessing_tweet(self, token_seq):
+    def extra_secondary_preprocessing_tweet(self, upstream_token_seq):
         """Stemming preprocessing of tokenized tweet"""
-        upstream_token_seq = self.upstream_preprocessor.secondary_preprocessing_tweet(token_seq)
         stemmed_token_seq = []
         for token in upstream_token_seq:
             stemmed_token_seq.append( stemming( token ) )
