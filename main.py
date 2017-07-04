@@ -4,7 +4,7 @@ import config
 
 from TwitterDataset import TwitterDataSet
 
-from Vocabulary import read_vocabulary_from_file, RegularizingPreprocessor, LexicalPreprocessor, StemmingPreprocessor
+from Vocabulary import read_vocabulary_from_file, ouput_vocabulary_statistics, RegularizingPreprocessor, LexicalPreprocessor, StemmingPreprocessor
 
 from NeuralNetwork import Network, AdaBoostModel, StaticAdaBoostModel, AdaptiveAdaBoostModel
 
@@ -147,7 +147,9 @@ def adaptive_adaboost_model():
                     prediction_file=config.result_file)
 
 
+def print_vocabulary_statistics():
+    print("Creating vocabulary...")
+    ouput_vocabulary_statistics(read_vocabulary_from_file(**config.vocab_path_opt))
 
 if __name__ == '__main__':
-    static_adaboost_model();
-
+    print_vocabulary_statistics()
