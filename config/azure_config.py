@@ -1,5 +1,7 @@
 import getpass
 import Models
+from Vocabulary import RegularizingPreprocessor, LexicalPreprocessor, CharacterBasedPreprocessor
+
 
 azure_config = None
 local_config = None
@@ -55,29 +57,38 @@ def preprocessor_vocabulary_filter(word, occurrence):
            (len(word) == 2 and occurrence >= 100*min_word_occurrence) or \
            (len(word) == 1 and occurrence >= 1000*min_word_occurrence)
 
-preprocessor_opt = { "remove_unknown_words": True,
-                     "final_vocabulary_filter": final_vocabulary_filter,
-                     "preprocessor_vocabulary_filter": preprocessor_vocabulary_filter}
+# Change a preprocessor from [characters, regularizing, lexical]
+preprocessor_type='characters'
 
-### ML model options
-
-# Embedding layer parameters
 word_embeddings_opt = {"initializer": "word2vec",
                        "dim": 400,
                        "trainable": False,
                        "corpus_name": "full.emb"}
 
-# Neural network parameter
 model_builder=Models.SingleLSTM({"lstm_units":270})
 
 # Training parameters
 training_opt = {"epochs":3,
                 "batch_size":64 }
 
-# Results output parameters
-result_file='results/result.csv'
-misclassified_samples_file = 'misclassified_samples/misclassified_{}_samples'
 
-# Load model parameters
-model_save_path = "model"
+if preprocessor_type=='lexical':
+    preprocessor_opt = {"remove_unknown_words": True,
+                        "final_vocabulary_filter": final_vocabulary_filter
+                        }
+    preprocessor_init=LexicalPreprocessor
 
+elif preprocessor_type=='regularizing':
+    preprocessor_opt = {"remove_unknown_words": True,
+                        "final_vocabulary_filter": final_vocabulary_filter,
+                        "preprocessor_vocabulary_filter": preprocessor_vocabulary_filter
+                        }
+    preprocessor_init = RegularizingPreprocessor
+
+elif preprocessor_type=='characters':
+    preprocessor_opt = {}
+    word_embeddings_opt["initializer"]="characterEmbeddings"
+    preprocessor_init = CharacterBasedPreprocessor
+
+else:
+    raise

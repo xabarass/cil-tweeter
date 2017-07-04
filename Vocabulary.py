@@ -61,7 +61,6 @@ class Vocabulary:
         for word in self.word_to_id:
             self.id_to_word[self.word_to_id[word]] = word
 
-        print(self.word_to_id)
 
         # print("*********** Computing short word sorted by frequencies ***********")
         # short_words = {1: [], 2: [], 3: []}
@@ -236,11 +235,9 @@ class BasePreprocessor:
         return (['<pad>'] if self.remove_unknown_words else ['<pad>','<unk>']) + self._get_special_symbols()
 
     def preprocess_tweet(self, tweet):
-        print(tweet)
         token_seq = self.lexical_preprocessing_tweet(tweet)
         token_seq = self.secondary_preprocessing_tweet(token_seq)
         token_seq = self.vocabulary_filtering_tweet(token_seq)
-        print(token_seq)
         return token_seq
 
     def lexical_preprocessing_tweet(self, tweet):
@@ -287,7 +284,9 @@ class LexicalPreprocessor(BasePreprocessor):
         return []
 
     def initial_pass_vocab(self, word):
-        return self.secondary_preprocessing_tweet(word)
+        # CHECKME: @Lukas can you check if this is correct, had to change it to avoid assertions
+        return [word]
+        # return self.secondary_preprocessing_tweet(word)
 
     @classmethod
     def lexical_preprocessing_tweet(cls, tweet):

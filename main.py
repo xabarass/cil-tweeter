@@ -22,8 +22,7 @@ def keras_model():
     print("Creating vocabulary...")
     word_to_occurrence_full = read_vocabulary_from_file(**config.vocab_path_opt)
 
-    preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
-    preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    preprocessor=config.preprocessor_init(word_to_occurrence_full, **config.preprocessor_opt)
 
     print("Creating training data set...")
     preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)
