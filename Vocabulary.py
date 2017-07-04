@@ -79,6 +79,7 @@ class Vocabulary:
         if hasattr(preprocessor.final_vocabulary_filter, "min_word_occurrence"):
             self.min_word_occurrence = preprocessor.final_vocabulary_filter.min_word_occurrence
 
+        print("Creating filtered vocab")
         self.word_to_id, self.word_to_occurrence = create_filtered_vocabulary(preprocessed_word_to_occurrence,
                                                                               preprocessor.get_special_symbols(),
                                                                               preprocessor.final_vocabulary_filter)
@@ -89,6 +90,7 @@ class Vocabulary:
         self.id_to_word = {}
         for word in self.word_to_id:
             self.id_to_word[self.word_to_id[word]] = word
+
 
         # print("*********** Computing short word sorted by frequencies ***********")
         # short_words = {1: [], 2: [], 3: []}
@@ -265,10 +267,9 @@ def extra_pass_vocabulary(word_to_occurrence_full,
 
     return replaced_preprocessed_words
 
-
-
 class BasePreprocessor:
     def __init__(self, final_vocabulary_filter,  remove_unknown_words):
+        print("Creating new base preprocessor: final filter {}".format(final_vocabulary_filter))
         self.remove_unknown_words = remove_unknown_words
         self.final_vocabulary_filter = final_vocabulary_filter
 
@@ -280,9 +281,11 @@ class BasePreprocessor:
         return (['<pad>'] if self.remove_unknown_words else ['<pad>','<unk>']) + self._get_special_symbols()
 
     def preprocess_tweet(self, tweet):
+        print(tweet)
         token_seq = self.lexical_preprocessing_tweet(tweet)
         token_seq = self.secondary_preprocessing_tweet(token_seq)
         token_seq = self.vocabulary_filtering_tweet(token_seq)
+        print(token_seq)
         return token_seq
 
     def lexical_preprocessing_tweet(self, tweet):
@@ -341,10 +344,9 @@ class LexicalPreprocessor(BasePreprocessor):
         # Token regularization
         return token_seq
 
-
 class RegularizingPreprocessor(BasePreprocessor):
     def __init__(self, word_to_occurrence_full, final_vocabulary_filter, preprocessor_vocabulary_filter, remove_unknown_words=False):
-        super(RegularizingPreprocessor,self).__init__(final_vocabulary_filter=final_vocabulary_filter,remove_unknown_words=remove_unknown_words)
+        super(RegularizingPreprocessor,self).__init__(final_vocabulary_filter=final_vocabulary_filter, remove_unknown_words=remove_unknown_words)
         self.internal_vocabulary_filter=preprocessor_vocabulary_filter
 
         if not isinstance(word_to_occurrence_full, dict):
@@ -387,7 +389,6 @@ class RegularizingPreprocessor(BasePreprocessor):
                 regularized_words.append(new_word)
 
         return regularized_words
-
 
 class ExtraPreprocessor(BasePreprocessor):
     '''
@@ -455,3 +456,53 @@ class StemmingPreprocessor(ExtraPreprocessor):
             stemmed_token_seq.append( stemming( token ) )
         return stemmed_token_seq
 
+class CharacterBasedPreprocessor(BasePreprocessor):
+    def __init__(self, word_to_occurrence_full):
+        def character_vocabulary_filter(word, occurrence):
+            return (32 <= ord(word) and ord(word) < 65) or (91 <= ord(word) and ord(word) < 127)
+        character_vocabulary_filter.min_word_occurrence = 0
+
+        super(CharacterBasedPreprocessor, self).__init__(final_vocabulary_filter=character_vocabulary_filter, remove_unknown_words=True)
+
+        char_to_occurrence = \
+            single_pass_vocabulary_generator(word_to_occurrence_full=word_to_occurrence_full,
+                                             preprocessor=self)
+
+        print("[CharacterBasedPreprocessor] Character to occurrence count {}".format(len(char_to_occurrence)))
+
+        self.final_vocabulary = Vocabulary(preprocessed_word_to_occurrence=char_to_occurrence,
+                                           preprocessor=self)
+
+        print("[CharacterBasedPreprocessor] Vocabulary has {} words".format(self.final_vocabulary.word_count))
+
+    # Symbols to be replaced with special characters
+    special_symbols=[
+        '<user>',
+        '<url>'
+    ]
+
+    def _get_special_symbols(self):
+        return CharacterBasedPreprocessor.special_symbols
+
+    def initial_pass_vocab(self, word):
+        return self.secondary_preprocessing_tweet(word)
+
+    @classmethod
+    def lexical_preprocessing_tweet(cls, tweet):
+        """Lexical tweet preprocessing - tokenization"""
+        words = tweet.rstrip().split(' ')
+        return words
+
+    def secondary_preprocessing_tweet(self, token_seq):
+        """Secondary tweet preprocessing - character splitting"""
+        character_seq = []
+        for word in token_seq:
+            if word in CharacterBasedPreprocessor.special_symbols:
+                character_seq.append(word)
+            else:
+                for char in word:
+                    character_seq.append(char)
+
+            character_seq.append(' ')
+
+        return character_seq[:-1]

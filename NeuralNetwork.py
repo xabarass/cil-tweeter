@@ -17,7 +17,7 @@ from Emailer import Emailer
 import config
 
 # import our own modules
-from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings
+from WordEmbeddings import Word2VecEmbeddings, GloVeEmbeddings, CharacterEmbeddings
 from KerasUtils import save_model
 from TwitterDataset import PreprocessedDataset
 
@@ -64,10 +64,10 @@ class ModelPredicter(Callback):
             Network.predict(self.model, self.preprocessed_dataset,
                             self.result_epoch_file.format(epoch))
 
-
 class Network:
     word_embedding_models =  { 'word2vec' : Word2VecEmbeddings,
-                               'glove'    : GloVeEmbeddings}
+                               'glove'    : GloVeEmbeddings,
+                               'characterEmbeddings':CharacterEmbeddings}
 
     @classmethod
     def create_embedding_layer(cls,preprocessed_dataset,**word_embeddings_opt):
@@ -81,19 +81,21 @@ class Network:
         word_embeddings_opt_param.update(word_embeddings_opt)
         if word_embeddings_opt_param["initializer"] in Network.word_embedding_models:
             word_embeddings = Network.word_embedding_models[word_embeddings_opt_param["initializer"]](
+
                 preprocessor=preprocessor,
                 preprocessed_tweets=preprocessed_dataset.all_preprocessed_tweets_weighted(),
                 word_embedding_dimensions=word_embeddings_opt_param["dim"],
                 embedding_corpus_name=word_embeddings_opt_param["corpus_name"])
+            print("Using predefined embedding layer!")
             embedding_layer = Embedding(input_dim=preprocessor.vocabulary.word_count,
-                                        output_dim=word_embeddings_opt_param["dim"],
+                                        output_dim=word_embeddings.output_dimension,
                                         weights=[word_embeddings.embedding_matrix],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])
-
         else:
-            embedding_layer = Embedding(input_dim=preprocessor.vocabulary.word_count,
-                                        output_dim=word_embeddings_opt_param["dim"],
+            print("Using generic embedding layer!")
+            embedding_layer = Embedding(preprocessor.vocabulary.word_count,
+                                        word_embeddings_opt_param["dim"],
                                         input_length=preprocessed_dataset.max_tweet_length,
                                         trainable=word_embeddings_opt_param["trainable"])
 
@@ -213,7 +215,6 @@ class Network:
 
 
 ############ Boosted models ############
-
 
 from sklearn.ensemble import AdaBoostClassifier
 from keras.wrappers.scikit_learn import KerasClassifier

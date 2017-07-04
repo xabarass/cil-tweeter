@@ -4,7 +4,7 @@ import config
 
 from TwitterDataset import TwitterDataSet
 
-from Vocabulary import read_vocabulary_from_file, ouput_vocabulary_statistics, RegularizingPreprocessor, LexicalPreprocessor, StemmingPreprocessor
+from Vocabulary import read_vocabulary_from_file, ouput_vocabulary_statistics, RegularizingPreprocessor, LexicalPreprocessor, StemmingPreprocessor, CharacterBasedPreprocessor
 
 from NeuralNetwork import Network, AdaBoostModel, StaticAdaBoostModel, AdaptiveAdaBoostModel
 
@@ -22,11 +22,12 @@ def keras_model():
     print("Creating vocabulary...")
     word_to_occurrence_full = read_vocabulary_from_file(**config.vocab_path_opt)
 
-    preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
-    #preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
-    #preprocessor = StemmingPreprocessor(preprocessor,
-    #                                    stemming_vocabulary_filter=config.preprocessor_opt['final_vocabulary_filter'],
-    #                                    remove_unknown_words=config.preprocessor_opt['remove_unknown_words'])
+    # preprocessor = RegularizingPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    preprocessor = LexicalPreprocessor(word_to_occurrence_full,**config.preprocessor_opt)
+    preprocessor = StemmingPreprocessor(preprocessor,
+                                       stemming_vocabulary_filter=config.preprocessor_opt['final_vocabulary_filter'],
+                                       remove_unknown_words=config.preprocessor_opt['remove_unknown_words'])
+    # preprocessor=CharacterBasedPreprocessor(word_to_occurrence_full)
 
     print("Preprocessing training data set...")
     preprocessed_dataset = twitter_dataset.create_preprocessed_dataset(preprocessor, config.validation_split_ratio)
@@ -152,5 +153,5 @@ def print_vocabulary_statistics():
     ouput_vocabulary_statistics(read_vocabulary_from_file(**config.vocab_path_opt))
 
 if __name__ == '__main__':
-    print_vocabulary_statistics()
+    keras_model()
 

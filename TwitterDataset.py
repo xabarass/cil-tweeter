@@ -5,7 +5,6 @@ import random
 import numpy as np
 from tqdm import tqdm
 from keras.preprocessing import sequence
-import TextRegularizer
 
 import config
 
@@ -34,7 +33,6 @@ class TwitterDataSet:
             raise Exception("Not a valid file: %s"%self.neg_tw_path)
         if not os.path.isfile(self.test_data_path):
             raise Exception("Not a valid file: %s"%self.test_data_path)
-
 
         def add_test_tweet(tweet):
             self.original_test_tweets.append(tweet)
